@@ -12,8 +12,8 @@
 
 | Milestone | Name | Target | Status |
 |-----------|------|--------|--------|
-| M0 | Foundation | Week 1 | ⬜ Not started |
-| M1 | Database & Developer Registry | Week 2 | ⬜ Not started |
+| M0 | Foundation | Week 1 | ✅ Done |
+| M1 | Database & Developer Registry | Week 2 | ✅ Done |
 | M2 | GitHub Client & Rate Limiter | Week 2–3 | ⬜ Not started |
 | M3 | Sync Worker | Week 3–4 | ⬜ Not started |
 | M4 | Stats Engine & Public API | Week 4–5 | ⬜ Not started |
@@ -72,17 +72,17 @@ cmd/worker/main.go
   - [x] `contribution_days`
   - [x] `sync_jobs`
   - [x] `admin_users`
-- [ ] Repository layer (pgx or sqlc)
-- [ ] Admin auth (JWT + bcrypt, seed admin user)
-- [ ] CRUD endpoints: register / list / update / delete developers
-- [ ] Basic Next.js shell with admin login + add-developer form (**username + email**)
+- [x] Repository layer (pgx or sqlc)
+- [x] Admin auth (JWT + bcrypt, seed admin user)
+- [x] CRUD endpoints: register / list / update / delete developers
+- [x] Basic Next.js shell with admin login + add-developer form (**username + email**)
 
 ### Exit Criteria
 
-- [ ] Admin can log in with seeded credentials
-- [ ] Admin can add a developer with **GitHub username and email**
-- [ ] Developer persists in DB and appears in admin list
-- [ ] Admin can update and delete developers
+- [x] Admin can log in with seeded credentials
+- [x] Admin can add a developer with **GitHub username and email**
+- [x] Developer persists in DB and appears in admin list
+- [x] Admin can update and delete developers
 
 ### Register Developer Payload (v1)
 
