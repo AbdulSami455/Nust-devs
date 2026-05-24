@@ -37,14 +37,14 @@
 - [x] Config loading (env vars + `.env.example`)
 - [x] Structured logging (slog or zerolog)
 - [x] Health endpoint (`GET /health`)
-- [ ] SQL migrations tooling (golang-migrate)
-- [ ] GitHub Actions: lint, test, build
-- [ ] `.gitignore` and expanded README with setup instructions
+- [x] SQL migrations tooling (golang-migrate)
+- [x] GitHub Actions: lint, test, build
+- [x] `.gitignore` and expanded README with setup instructions
 
 ### Exit Criteria
 
 - [x] `GET /health` returns `200 OK`
-- [ ] CI pipeline passes on push
+- [x] CI pipeline passes on push
 
 ### Key Files
 
@@ -64,14 +64,14 @@ cmd/worker/main.go
 
 ### Tasks
 
-- [ ] Design and apply initial migration
-  - [ ] `developers` (includes `github_username`, `email`, optional `display_name`, `notes`)
-  - [ ] `repos`
-  - [ ] `developer_repos`
-  - [ ] `developer_snapshots`
-  - [ ] `contribution_days`
-  - [ ] `sync_jobs`
-  - [ ] `admin_users`
+- [x] Design and apply initial migration
+  - [x] `developers` (includes `github_username`, `email`, optional `display_name`, `notes`)
+  - [x] `repos`
+  - [x] `developer_repos`
+  - [x] `developer_snapshots`
+  - [x] `contribution_days`
+  - [x] `sync_jobs`
+  - [x] `admin_users`
 - [ ] Repository layer (pgx or sqlc)
 - [ ] Admin auth (JWT + bcrypt, seed admin user)
 - [ ] CRUD endpoints: register / list / update / delete developers
