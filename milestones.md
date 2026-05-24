@@ -4,7 +4,7 @@
 >
 > **Stack:** Go API + Next.js dashboard · PostgreSQL · Redis · Asynq workers
 >
-> **Discovery model:** Hybrid — manual admin registry first, then NUST-affiliated email domains (e.g. `@nust.edu.pk`, `@seecs.edu.pk`) 
+> **Discovery model:** Admin registers developers with **GitHub username + email**. No GitHub org verification. Email domain checks and user self-registration come **last** — build sync, stats, and dashboard first.
 
 ---
 
@@ -18,8 +18,8 @@
 | M3 | Sync Worker | Week 3–4 | ⬜ Not started |
 | M4 | Stats Engine & Public API | Week 4–5 | ⬜ Not started |
 | M5 | Public Dashboard | Week 5–7 | ⬜ Not started |
-| M6 | Hybrid Verification | Week 7–8 | ⬜ Not started |
-| M7 | Production Hardening | Week 8–9 | ⬜ Not started |
+| M7 | Production Hardening | Week 7–8 | ⬜ Not started |
+| M6 | Email Verification (optional) | Week 8+ | ⬜ Low priority |
 | M8 | Future Enhancements | Post-v1 | ⬜ Backlog |
 
 **Legend:** ⬜ Not started · 🔄 In progress · ✅ Done
@@ -63,30 +63,38 @@ docker-compose.yml
 ## Milestone 1 — Database & Developer Registry
 
 **Target:** Week 2  
-**Goal:** Persist developers; admin can register them.
+**Goal:** Persist developers; admin can register them with GitHub username and email.
 
 ### Tasks
 
 - [ ] Design and apply initial migration
-  - [ ] `developers`
+  - [ ] `developers` (includes `github_username`, `email`, optional `display_name`, `notes`)
   - [ ] `repos`
   - [ ] `developer_repos`
   - [ ] `developer_snapshots`
   - [ ] `contribution_days`
   - [ ] `sync_jobs`
   - [ ] `admin_users`
-  - [ ] `verified_email_domains` (allowlist: domain, label, active)
 - [ ] Repository layer (pgx or sqlc)
 - [ ] Admin auth (JWT + bcrypt, seed admin user)
 - [ ] CRUD endpoints: register / list / update / delete developers
-- [ ] Basic Next.js shell with admin login + add-developer form
+- [ ] Basic Next.js shell with admin login + add-developer form (**username + email**)
 
 ### Exit Criteria
 
 - [ ] Admin can log in with seeded credentials
-- [ ] Admin can add a GitHub username
+- [ ] Admin can add a developer with **GitHub username and email**
 - [ ] Developer persists in DB and appears in admin list
 - [ ] Admin can update and delete developers
+
+### Register Developer Payload (v1)
+
+| Field | Required | Notes |
+|-------|----------|-------|
+| `github_username` | Yes | Used for GitHub sync |
+| `email` | Yes | Stored now; domain verification deferred to M6 |
+| `display_name` | No | Optional override |
+| `notes` | No | Admin-only |
 
 ### API Endpoints
 
@@ -264,24 +272,26 @@ Weights configurable in admin settings. Recompute after each sync.
 
 ---
 
-## Milestone 6 — Hybrid Verification
+## Milestone 6 — Email Verification (Optional, Low Priority)
 
-**Target:** Week 7–8  
-**Goal:** Expand beyond manual registry.
+**Target:** Week 8+ *(after v1 launch — not a blocker for M7)*  
+**Goal:** Validate admin-provided emails against NUST-affiliated domains. **No GitHub org verification.**
+
+> Build the core platform first (M0–M5, M7). Add email verification only when the dashboard and sync are stable.
 
 ### Tasks
 
-- [ ] Email verification — GitHub public email matches any allowed NUST-affiliated domain
 - [ ] Configurable email domain allowlist (admin-managed)
   - [ ] Default domains: `nust.edu.pk`, `seecs.edu.pk`
   - [ ] Support adding/removing domains without code changes (e.g. `@nbs.edu.pk`, `@scme.nust.edu.pk`)
+- [ ] Verify **admin-provided email** against allowlist (not GitHub org membership)
+- [ ] Optional: cross-check with GitHub public email during sync if available
 - [ ] Store matched domain on developer record (e.g. `verified_email_domain: "seecs.edu.pk"`)
-- [ ] Org verification — sync members from configured NUST GitHub org
-- [ ] Verification badges on frontend (show domain or org source when verified)
-- [ ] Filter: "verified NUST developers only" on leaderboard and lists
-- [ ] Admin UI: manage allowed domains, run verification checks, override status
+- [ ] Verification badges on frontend (show domain when email-verified)
+- [ ] Filter: "verified developers only" on leaderboard and lists
+- [ ] Admin UI: manage allowed domains, re-run email checks, manual override
 
-### Allowed Email Domains (Default v1)
+### Allowed Email Domains (Default)
 
 | Domain | Affiliation |
 |--------|-------------|
@@ -294,17 +304,16 @@ Additional school/department domains can be added via admin settings.
 
 | Status | Meaning |
 |--------|---------|
-| `registered` | Admin added, unverified |
-| `email_verified` | GitHub public email matches an allowed NUST-affiliated domain |
-| `org_verified` | Member of configured NUST GitHub org |
+| `registered` | Added with username + email; not yet verified |
+| `email_verified` | Provided email matches an allowed NUST-affiliated domain |
 | `manual_verified` | Admin manually confirmed |
 
 ### Exit Criteria
 
-- [ ] Developers auto-verified when email matches any allowed domain or org membership
-- [ ] Verification badges visible on profiles and leaderboard (domain shown for email-verified)
+- [ ] Developers marked `email_verified` when their stored email matches an allowed domain
+- [ ] Verification badges visible on profiles and leaderboard
 - [ ] "Verified only" filter works on public pages
-- [ ] Admin can add/remove allowed domains and override verification status
+- [ ] Admin can add/remove allowed domains and override status
 
 ### Admin API Endpoints
 
@@ -344,14 +353,19 @@ Additional school/department domains can be added via admin settings.
 
 ## Milestone 8 — Future Enhancements (Post-v1 Backlog)
 
-**Goal:** Track ideas without blocking v1 launch.
+**Goal:** Track ideas without blocking v1 launch. **Lowest priority: developers registering themselves.**
+
+### Last Priority — User Self-Service
+
+- [ ] **Developer self-registration** — user submits their own GitHub username, email, and basic info
+- [ ] **Claim flow** — user requests to be added; admin approves
+- [ ] **GitHub OAuth login** — developers manage their own profile after claiming
+
+### Other Backlog
 
 - [ ] PR/issue stats via GraphQL (per-repo)
 - [ ] Cohort/year filters (batch of NUST graduates)
-- [ ] Developer self-registration + claim flow
-- [ ] GitHub OAuth login for developers to manage their profile
 - [ ] Export stats (CSV/JSON)
-- [ ] Webhooks for real-time repo events (if org-owned)
 - [ ] Compare two developers side-by-side
 - [ ] Monthly "NUST Dev of the Month" automated ranking
 - [ ] Public API rate limiting for third-party consumers
@@ -366,7 +380,7 @@ Additional school/department domains can be added via admin settings.
 | Public page load time | < 2s |
 | Sync reliability | No 429 errors within rate limits |
 | Live chart types | 6+ |
-| Admin workflow | Add / sync / verify end-to-end |
+| Admin workflow | Add username + email / sync / view stats |
 
 ---
 
@@ -377,7 +391,7 @@ Additional school/department domains can be added via admin settings.
 | GitHub rate limits with many developers | Sync stalls | Staggered sync, Redis queue, PAT, aggressive persistence |
 | Events API 90-day limit | Incomplete history | GraphQL contribution calendar + daily snapshots |
 | Private repos invisible | Incomplete stats | Document clearly; only public data |
-| Fake NUST affiliation | Bad data | Hybrid verification (email + org + admin manual) |
+| Fake NUST affiliation | Bad data | Email domain allowlist (M6) + admin manual override |
 | GitHub API changes | Broken sync | Version-pin API calls; abstract client interface |
 | Large repo lists per user | Slow sync | Paginate; cap repo detail fetch to top N by stars/activity |
 
@@ -385,19 +399,21 @@ Additional school/department domains can be added via admin settings.
 
 ## Implementation Order
 
+**v1 launch path** — verification and self-registration are explicitly deferred:
+
 ```
 M0 Foundation
-  └─► M1 Registry
+  └─► M1 Registry (username + email)
         └─► M2 GitHub Client
               └─► M3 Sync Worker
                     └─► M4 Stats API
                           └─► M5 Dashboard  ← usable public platform
-                                └─► M6 Verification
-                                      └─► M7 Production  ← v1 launch
-                                            └─► M8 Backlog
+                                └─► M7 Production  ← v1 launch
+                                      └─► M6 Email verification (optional, later)
+                                            └─► M8 Self-registration (last priority)
 ```
 
-Work strictly milestone-by-milestone. Do not start the next milestone until exit criteria for the current one are met.
+Work strictly milestone-by-milestone for M0–M7. M6 and M8 do not block v1 launch.
 
 ---
 
