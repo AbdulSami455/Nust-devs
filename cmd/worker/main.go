@@ -15,6 +15,5 @@ func main() {
 	slog.SetDefault(logger)
 
 	slog.Info("worker starting")
-	// Asynq worker setup comes in M3
 	select {}
 }
