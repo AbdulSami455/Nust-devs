@@ -33,19 +33,17 @@
 
 ### Tasks
 
-- [ ] Initialize Go module and project layout (`cmd/`, `internal/`)
-- [ ] Docker Compose: PostgreSQL, Redis, API, worker, web
-- [ ] Config loading (env vars + `.env.example`)
-- [ ] Structured logging (slog or zerolog)
-- [ ] Health endpoint (`GET /health`)
+- [x] Initialize Go module and project layout (`cmd/`, `internal/`)
+- [x] Config loading (env vars + `.env.example`)
+- [x] Structured logging (slog or zerolog)
+- [x] Health endpoint (`GET /health`)
 - [ ] SQL migrations tooling (golang-migrate)
 - [ ] GitHub Actions: lint, test, build
 - [ ] `.gitignore` and expanded README with setup instructions
 
 ### Exit Criteria
 
-- [ ] `docker compose up` starts all services without errors
-- [ ] `GET /health` returns `200 OK`
+- [x] `GET /health` returns `200 OK`
 - [ ] CI pipeline passes on push
 
 ### Key Files
@@ -53,7 +51,6 @@
 ```
 cmd/server/main.go
 cmd/worker/main.go
-docker-compose.yml
 .env.example
 .github/workflows/ci.yml
 ```
@@ -334,6 +331,7 @@ Additional school/department domains can be added via admin settings.
 ### Tasks
 
 - [ ] Production Dockerfile (multi-stage Go build + Next.js standalone)
+- [ ] Docker Compose: PostgreSQL, Redis, API, worker, web
 - [ ] Environment-specific config (dev / staging / prod)
 - [ ] Rate limit monitoring in admin dashboard
 - [ ] Error alerting hooks (log aggregation ready)
@@ -344,6 +342,7 @@ Additional school/department domains can be added via admin settings.
 
 ### Exit Criteria
 
+- [ ] `docker compose up` starts all services without errors
 - [ ] Platform deployable via Docker in a single command
 - [ ] Another developer can run locally using README alone
 - [ ] Leaderboard and stats queries perform well at 50+ developers
