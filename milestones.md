@@ -4,7 +4,7 @@
 >
 > **Stack:** Go API + Next.js dashboard · PostgreSQL · Redis · Asynq workers
 >
-> **Discovery model:** Hybrid — manual admin registry first, then `@nust.edu.pk` email + GitHub org verification.
+> **Discovery model:** Hybrid — manual admin registry first, then NUST-affiliated email domains (e.g. `@nust.edu.pk`, `@seecs.edu.pk`) 
 
 ---
 
@@ -75,6 +75,7 @@ docker-compose.yml
   - [ ] `contribution_days`
   - [ ] `sync_jobs`
   - [ ] `admin_users`
+  - [ ] `verified_email_domains` (allowlist: domain, label, active)
 - [ ] Repository layer (pgx or sqlc)
 - [ ] Admin auth (JWT + bcrypt, seed admin user)
 - [ ] CRUD endpoints: register / list / update / delete developers
@@ -270,27 +271,49 @@ Weights configurable in admin settings. Recompute after each sync.
 
 ### Tasks
 
-- [ ] Email verification — GitHub public email matches `@nust.edu.pk`
+- [ ] Email verification — GitHub public email matches any allowed NUST-affiliated domain
+- [ ] Configurable email domain allowlist (admin-managed)
+  - [ ] Default domains: `nust.edu.pk`, `seecs.edu.pk`
+  - [ ] Support adding/removing domains without code changes (e.g. `@nbs.edu.pk`, `@scme.nust.edu.pk`)
+- [ ] Store matched domain on developer record (e.g. `verified_email_domain: "seecs.edu.pk"`)
 - [ ] Org verification — sync members from configured NUST GitHub org
-- [ ] Verification badges on frontend
+- [ ] Verification badges on frontend (show domain or org source when verified)
 - [ ] Filter: "verified NUST developers only" on leaderboard and lists
-- [ ] Admin UI: run verification checks, override status
+- [ ] Admin UI: manage allowed domains, run verification checks, override status
+
+### Allowed Email Domains (Default v1)
+
+| Domain | Affiliation |
+|--------|-------------|
+| `nust.edu.pk` | NUST (main) |
+| `seecs.edu.pk` | SEECS — School of Electrical Engineering & Computer Science |
+
+Additional school/department domains can be added via admin settings.
 
 ### Verification Statuses
 
 | Status | Meaning |
 |--------|---------|
 | `registered` | Admin added, unverified |
-| `email_verified` | GitHub email matches `@nust.edu.pk` |
+| `email_verified` | GitHub public email matches an allowed NUST-affiliated domain |
 | `org_verified` | Member of configured NUST GitHub org |
 | `manual_verified` | Admin manually confirmed |
 
 ### Exit Criteria
 
-- [ ] Developers auto-verified when email or org matches
-- [ ] Verification badges visible on profiles and leaderboard
+- [ ] Developers auto-verified when email matches any allowed domain or org membership
+- [ ] Verification badges visible on profiles and leaderboard (domain shown for email-verified)
 - [ ] "Verified only" filter works on public pages
-- [ ] Admin can override verification status
+- [ ] Admin can add/remove allowed domains and override verification status
+
+### Admin API Endpoints
+
+| Method | Path | Auth |
+|--------|------|------|
+| GET | `/api/v1/admin/verification/domains` | Admin |
+| POST | `/api/v1/admin/verification/domains` | Admin |
+| DELETE | `/api/v1/admin/verification/domains/:domain` | Admin |
+| POST | `/api/v1/admin/verification/run` | Admin |
 
 ---
 
