@@ -14,8 +14,8 @@
 |-----------|------|--------|--------|
 | M0 | Foundation | Week 1 | ✅ Done |
 | M1 | Database & Developer Registry | Week 2 | ✅ Done |
-| M2 | GitHub Client & Rate Limiter | Week 2–3 | ⬜ Not started |
-| M3 | Sync Worker | Week 3–4 | ⬜ Not started |
+| M2 | GitHub Client & Rate Limiter | Week 2–3 | ✅ Done |
+| M3 | Sync Worker | Week 3–4 | 🔄 In progress |
 | M4 | Stats Engine & Public API | Week 4–5 | ⬜ Not started |
 | M5 | Public Dashboard | Week 5–7 | ⬜ Not started |
 | M7 | Production Hardening | Week 7–8 | ⬜ Not started |
@@ -112,24 +112,24 @@ cmd/worker/main.go
 
 ### Tasks
 
-- [ ] REST client
-  - [ ] `GET /users/{username}` — profile
-  - [ ] `GET /users/{username}/repos` — paginated repos
-  - [ ] `GET /repos/{owner}/{repo}/languages` — language breakdown
-- [ ] GraphQL client
-  - [ ] `contributionsCollection` — contribution calendar
-- [ ] Central rate-limit manager
-  - [ ] Track `x-ratelimit-remaining` and `x-ratelimit-reset`
-  - [ ] Exponential backoff on 403/429
-  - [ ] Pause when remaining quota < 100
-- [ ] Unit tests with mocked GitHub responses
+- [x] REST client
+  - [x] `GET /users/{username}` — profile
+  - [x] `GET /users/{username}/repos` — paginated repos
+  - [x] `GET /repos/{owner}/{repo}/languages` — language breakdown
+- [x] GraphQL client
+  - [x] `contributionsCollection` — contribution calendar
+- [x] Central rate-limit manager
+  - [x] Track `x-ratelimit-remaining` and `x-ratelimit-reset`
+  - [x] Exponential backoff on 403/429
+  - [x] Pause when remaining quota < 100
+- [x] Unit tests with mocked GitHub responses
 - [ ] Integration test against live GitHub API (skipped in CI without token)
 
 ### Exit Criteria
 
-- [ ] Test or CLI fetches a known user's profile and repos
-- [ ] Rate limiter prevents unsafe burst requests
-- [ ] All GitHub calls require `GITHUB_TOKEN` (no unauthenticated production use)
+- [x] Test or CLI fetches a known user's profile and repos
+- [x] Rate limiter prevents unsafe burst requests
+- [x] All GitHub calls require `GITHUB_TOKEN` (no unauthenticated production use)
 
 ### Rate-Limit Rules (Non-Negotiable)
 
@@ -149,15 +149,15 @@ cmd/worker/main.go
 
 ### Tasks
 
-- [ ] Asynq job queue setup (enqueue, process, retry, dead letter)
-- [ ] Sync job pipeline: profile → repos → languages → contribution days
-- [ ] Daily snapshot writer (for trend graphs)
+- [x] Asynq job queue setup (enqueue, process, retry, dead letter)
+- [x] Sync job pipeline: profile → repos → languages → contribution days
+- [x] Daily snapshot writer (for trend graphs)
 - [ ] Staggered scheduling
   - [ ] Full sync nightly
   - [ ] Incremental sync every 6h
-- [ ] Admin trigger sync endpoint (single developer or all)
-- [ ] Admin sync status endpoint (queue depth + rate limit state)
-- [ ] Idempotent upserts; track `last_synced_at` per developer
+- [x] Admin trigger sync endpoint (single developer or all)
+- [x] Admin sync status endpoint (queue depth + rate limit state)
+- [x] Idempotent upserts; track `last_synced_at` per developer
 
 ### Exit Criteria
 
