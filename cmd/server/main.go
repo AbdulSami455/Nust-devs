@@ -8,9 +8,11 @@ import (
 
 	"github.com/abdulsami/nust-devs/internal/config"
 	"github.com/abdulsami/nust-devs/internal/db"
+	gh "github.com/abdulsami/nust-devs/internal/github"
 	"github.com/abdulsami/nust-devs/internal/handler"
 	"github.com/abdulsami/nust-devs/internal/middleware"
 	"github.com/abdulsami/nust-devs/internal/repository"
+	"github.com/hibiken/asynq"
 	"github.com/joho/godotenv"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -38,8 +40,13 @@ func main() {
 	seedAdmin(context.Background(), adminRepo, cfg)
 
 	devRepo := repository.NewDeveloperRepo(pool)
+	ghClient := gh.NewClient(os.Getenv("GITHUB_TOKEN"))
+	asynqClient := asynq.NewClient(asynq.RedisClientOpt{Addr: cfg.RedisAddr()})
+	defer asynqClient.Close()
+
 	authH := handler.NewAuthHandler(adminRepo, cfg.JWTSecret)
 	devH := handler.NewDeveloperHandler(devRepo)
+	syncH := handler.NewSyncHandler(devRepo, asynqClient, ghClient)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", handler.Health)
@@ -50,9 +57,14 @@ func main() {
 	protected.HandleFunc("GET /api/v1/admin/developers", devH.List)
 	protected.HandleFunc("PATCH /api/v1/admin/developers/{id}", devH.Update)
 	protected.HandleFunc("DELETE /api/v1/admin/developers/{id}", devH.Delete)
+	protected.HandleFunc("POST /api/v1/admin/sync", syncH.TriggerSync)
+	protected.HandleFunc("GET /api/v1/admin/sync/status", syncH.SyncStatus)
 
-	mux.Handle("/api/v1/admin/developers", middleware.Auth(cfg.JWTSecret)(protected))
-	mux.Handle("/api/v1/admin/developers/", middleware.Auth(cfg.JWTSecret)(protected))
+	auth := middleware.Auth(cfg.JWTSecret)
+	mux.Handle("/api/v1/admin/developers", auth(protected))
+	mux.Handle("/api/v1/admin/developers/", auth(protected))
+	mux.Handle("/api/v1/admin/sync", auth(protected))
+	mux.Handle("/api/v1/admin/sync/", auth(protected))
 
 	slog.Info("server starting", "port", cfg.Port)
 	if err := http.ListenAndServe(":"+cfg.Port, middleware.CORS(mux)); err != nil {
