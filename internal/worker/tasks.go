@@ -7,7 +7,11 @@ import (
 	"github.com/hibiken/asynq"
 )
 
-const TaskSyncDeveloper = "sync:developer"
+const (
+	TaskSyncDeveloper = "sync:developer"
+	TaskSyncAll       = "sync:all"
+	TaskSyncActive    = "sync:active"
+)
 
 type SyncDeveloperPayload struct {
 	DeveloperID     string `json:"developer_id"`
