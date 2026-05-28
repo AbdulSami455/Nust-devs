@@ -15,9 +15,9 @@
 | M0 | Foundation | Week 1 | ✅ Done |
 | M1 | Database & Developer Registry | Week 2 | ✅ Done |
 | M2 | GitHub Client & Rate Limiter | Week 2–3 | ✅ Done |
-| M3 | Sync Worker | Week 3–4 | 🔄 In progress |
-| M4 | Stats Engine & Public API | Week 4–5 | ⬜ Not started |
-| M5 | Public Dashboard | Week 5–7 | ⬜ Not started |
+| M3 | Sync Worker | Week 3–4 | ✅ Done |
+| M4 | Stats Engine & Public API | Week 4–5 | ✅ Done |
+| M5 | Public Dashboard | Week 5–7 | 🔄 In progress |
 | M7 | Production Hardening | Week 7–8 | ⬜ Not started |
 | M6 | Email Verification (optional) | Week 8+ | ⬜ Low priority |
 | M8 | Future Enhancements | Post-v1 | ⬜ Backlog |
@@ -152,19 +152,19 @@ cmd/worker/main.go
 - [x] Asynq job queue setup (enqueue, process, retry, dead letter)
 - [x] Sync job pipeline: profile → repos → languages → contribution days
 - [x] Daily snapshot writer (for trend graphs)
-- [ ] Staggered scheduling
-  - [ ] Full sync nightly
-  - [ ] Incremental sync every 6h
+- [x] Staggered scheduling
+  - [x] Full sync nightly
+  - [x] Incremental sync every 6h
 - [x] Admin trigger sync endpoint (single developer or all)
 - [x] Admin sync status endpoint (queue depth + rate limit state)
 - [x] Idempotent upserts; track `last_synced_at` per developer
 
 ### Exit Criteria
 
-- [ ] Register 5 developers → worker syncs all automatically
-- [ ] DB contains profiles, repos, languages, and contribution data
-- [ ] Daily snapshots are written for trend tracking
-- [ ] Manual sync trigger works from admin API
+- [x] Register 5 developers → worker syncs all automatically
+- [x] DB contains profiles, repos, languages, and contribution data
+- [x] Daily snapshots are written for trend tracking
+- [x] Manual sync trigger works from admin API
 
 ### API Endpoints
 
@@ -182,11 +182,11 @@ cmd/worker/main.go
 
 ### Tasks
 
-- [ ] Activity score computation service
-- [ ] Leaderboard queries (stars, commits, activity score, repos)
-- [ ] Top projects aggregation (NUST dev repos ranked)
-- [ ] Platform overview stats (totals, language breakdown)
-- [ ] Public API handlers with pagination, sorting, and Redis caching
+- [x] Activity score computation service
+- [x] Leaderboard queries (stars, commits, activity score, repos)
+- [x] Top projects aggregation (NUST dev repos ranked)
+- [x] Platform overview stats (totals, language breakdown)
+- [x] Public API handlers with pagination, sorting, and Redis caching
 - [ ] OpenAPI spec (swaggo or manual)
 
 ### Activity Score Formula (v1)
@@ -203,9 +203,9 @@ Weights configurable in admin settings. Recompute after each sync.
 
 ### Exit Criteria
 
-- [ ] All public API endpoints return real data from synced developers
-- [ ] Leaderboards sort correctly by each metric
-- [ ] Redis cache reduces repeated DB load for hot endpoints
+- [x] All public API endpoints return real data from synced developers
+- [x] Leaderboards sort correctly by each metric
+- [x] Redis cache reduces repeated DB load for hot endpoints
 
 ### API Endpoints
 
@@ -229,11 +229,11 @@ Weights configurable in admin settings. Recompute after each sync.
 
 ### Tasks
 
-- [ ] Design system (Tailwind + shadcn/ui, dark/light mode)
-- [ ] Home page — overview stats, top devs, top projects, language chart
-- [ ] Developer list — searchable/filterable grid
-- [ ] Developer profile — heatmap, language chart, repo table, stats cards
-- [ ] Leaderboard — sortable table with sparklines
+- [x] Design system (Tailwind + shadcn/ui, dark/light mode)
+- [x] Home page — overview stats, top devs, top projects, language chart
+- [x] Developer list — searchable/filterable grid
+- [x] Developer profile — heatmap, language chart, repo table, stats cards
+- [x] Leaderboard — sortable table with sparklines
 - [ ] Projects page — top repos grid/table
 - [ ] Stats page — platform-wide charts and trends
 - [ ] Responsive layout, loading states, error boundaries
