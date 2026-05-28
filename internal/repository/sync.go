@@ -113,6 +113,20 @@ func (r *SyncRepo) UpdateLastSynced(ctx context.Context, devID string) error {
 	return err
 }
 
+func (r *SyncRepo) RecomputeActivityScore(ctx context.Context, devID string) error {
+	_, err := r.db.Exec(ctx, `
+		UPDATE developers SET activity_score = (
+			(SELECT COALESCE(SUM(count), 0) FROM contribution_days
+			 WHERE developer_id = $1 AND date >= CURRENT_DATE - INTERVAL '90 days') * 3
+			+ (public_repos * 2)
+			+ (total_stars * 0.1)
+			+ (SELECT COALESCE(SUM(count), 0) FROM contribution_days
+			   WHERE developer_id = $1 AND date >= CURRENT_DATE - INTERVAL '30 days') * 5
+		)
+		WHERE id = $1`, devID)
+	return err
+}
+
 func (r *SyncRepo) UpdateTotalStars(ctx context.Context, devID string, repos []gh.Repo) error {
 	total := 0
 	for _, repo := range repos {

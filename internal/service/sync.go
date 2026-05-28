@@ -87,7 +87,12 @@ func (s *SyncService) SyncDeveloper(ctx context.Context, dev *models.Developer) 
 		return fmt.Errorf("write snapshot: %w", err)
 	}
 
-	// 6. Mark synced
+	// 6. Recompute activity score
+	if err := s.syncRepo.RecomputeActivityScore(ctx, dev.ID); err != nil {
+		return fmt.Errorf("recompute score: %w", err)
+	}
+
+	// 7. Mark synced
 	if err := s.syncRepo.UpdateLastSynced(ctx, dev.ID); err != nil {
 		return fmt.Errorf("update last_synced_at: %w", err)
 	}

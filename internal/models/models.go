@@ -43,3 +43,33 @@ type UpdateDeveloperInput struct {
 	DisplayName *string `json:"display_name,omitempty"`
 	Notes       *string `json:"notes,omitempty"`
 }
+
+type Overview struct {
+	TotalDevelopers    int   `json:"total_developers"`
+	TotalRepos         int   `json:"total_repos"`
+	TotalStars         int   `json:"total_stars"`
+	TotalContributions int64 `json:"total_contributions"`
+}
+
+type LanguageStat struct {
+	Language  string `json:"language"`
+	Bytes     int64  `json:"bytes"`
+	RepoCount int    `json:"repo_count"`
+}
+
+type PublicRepo struct {
+	ID          string  `json:"id"`
+	Name        string  `json:"name"`
+	FullName    string  `json:"full_name"`
+	Description string  `json:"description"`
+	URL         string  `json:"url"`
+	Language    *string `json:"language,omitempty"`
+	Stars       int     `json:"stars"`
+	Forks       int     `json:"forks"`
+	IsFork      bool    `json:"is_fork"`
+}
+
+type ContributionDay struct {
+	Date  string `json:"date"`
+	Count int    `json:"count"`
+}
