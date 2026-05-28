@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/abdulsami/nust-devs/internal/cache"
 	"github.com/abdulsami/nust-devs/internal/config"
 	"github.com/abdulsami/nust-devs/internal/db"
 	gh "github.com/abdulsami/nust-devs/internal/github"
@@ -36,22 +37,40 @@ func main() {
 	}
 	defer pool.Close()
 
+	redisCach := cache.New(cfg.RedisAddr())
 	adminRepo := repository.NewAdminRepo(pool)
-	seedAdmin(context.Background(), adminRepo, cfg)
-
 	devRepo := repository.NewDeveloperRepo(pool)
+	statsRepo := repository.NewStatsRepo(pool)
 	ghClient := gh.NewClient(os.Getenv("GITHUB_TOKEN"))
 	asynqClient := asynq.NewClient(asynq.RedisClientOpt{Addr: cfg.RedisAddr()})
 	defer asynqClient.Close()
 
+	seedAdmin(context.Background(), adminRepo, cfg)
+
 	authH := handler.NewAuthHandler(adminRepo, cfg.JWTSecret)
 	devH := handler.NewDeveloperHandler(devRepo)
 	syncH := handler.NewSyncHandler(devRepo, asynqClient, ghClient)
+	pubH := handler.NewPublicHandler(statsRepo, redisCach)
 
 	mux := http.NewServeMux()
+
+	// Health
 	mux.HandleFunc("GET /health", handler.Health)
+
+	// Public API
+	mux.HandleFunc("GET /api/v1/developers", pubH.ListDevelopers)
+	mux.HandleFunc("GET /api/v1/developers/{username}", pubH.GetDeveloper)
+	mux.HandleFunc("GET /api/v1/developers/{username}/repos", pubH.GetDeveloperRepos)
+	mux.HandleFunc("GET /api/v1/developers/{username}/contributions", pubH.GetDeveloperContributions)
+	mux.HandleFunc("GET /api/v1/leaderboard", pubH.GetLeaderboard)
+	mux.HandleFunc("GET /api/v1/projects/top", pubH.GetTopProjects)
+	mux.HandleFunc("GET /api/v1/stats/overview", pubH.GetOverview)
+	mux.HandleFunc("GET /api/v1/stats/languages", pubH.GetLanguages)
+
+	// Admin auth (public)
 	mux.HandleFunc("POST /api/v1/admin/auth/login", authH.Login)
 
+	// Admin protected
 	protected := http.NewServeMux()
 	protected.HandleFunc("POST /api/v1/admin/developers", devH.Create)
 	protected.HandleFunc("GET /api/v1/admin/developers", devH.List)

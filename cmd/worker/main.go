@@ -35,22 +35,39 @@ func main() {
 		os.Exit(1)
 	}
 
+	redisOpt := asynq.RedisClientOpt{Addr: cfg.RedisAddr()}
 	ghClient := gh.NewClient(ghToken)
 	syncRepo := repository.NewSyncRepo(pool)
 	devRepo := repository.NewDeveloperRepo(pool)
 	svc := service.NewSyncService(ghClient, syncRepo, devRepo)
-	processor := worker.NewSyncProcessor(svc)
 
-	srv := asynq.NewServer(
-		asynq.RedisClientOpt{Addr: cfg.RedisAddr()},
-		asynq.Config{
-			Concurrency: 3,
-			Queues:      map[string]int{"default": 1},
-		},
-	)
+	asynqClient := asynq.NewClient(redisOpt)
+	defer asynqClient.Close()
+
+	syncProcessor := worker.NewSyncProcessor(svc)
+	bulkProcessor := worker.NewBulkSyncProcessor(devRepo, asynqClient)
+
+	// Asynq server — 3 concurrent sync slots to respect rate limits
+	srv := asynq.NewServer(redisOpt, asynq.Config{
+		Concurrency: 3,
+		Queues:      map[string]int{"default": 1},
+	})
 
 	mux := asynq.NewServeMux()
-	mux.HandleFunc(worker.TaskSyncDeveloper, processor.ProcessTask)
+	mux.HandleFunc(worker.TaskSyncDeveloper, syncProcessor.ProcessTask)
+	mux.HandleFunc(worker.TaskSyncAll, bulkProcessor.ProcessSyncAll)
+	mux.HandleFunc(worker.TaskSyncActive, bulkProcessor.ProcessSyncActive)
+
+	// Staggered scheduling: full sync nightly, incremental every 6h
+	scheduler := asynq.NewScheduler(redisOpt, nil)
+	scheduler.Register("@midnight", asynq.NewTask(worker.TaskSyncAll, nil))
+	scheduler.Register("0 */6 * * *", asynq.NewTask(worker.TaskSyncActive, nil))
+
+	if err := scheduler.Start(); err != nil {
+		slog.Error("scheduler failed to start", "err", err)
+		os.Exit(1)
+	}
+	defer scheduler.Shutdown()
 
 	slog.Info("worker starting")
 	if err := srv.Run(mux); err != nil {
