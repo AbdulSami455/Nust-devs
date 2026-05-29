@@ -25,6 +25,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+interface SyncStatus {
+  github_rate_limit: { remaining: number; reset_at: string };
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const [developers, setDevelopers] = useState<Developer[]>([]);
@@ -32,6 +36,8 @@ export default function DashboardPage() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ github_username: "", email: "", display_name: "", notes: "" });
   const [submitting, setSubmitting] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
   const fetchDevelopers = useCallback(async () => {
     try {
@@ -50,7 +56,21 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchDevelopers();
+    api.admin.sync.status().then((s) => setSyncStatus(s as SyncStatus)).catch(() => {});
   }, [fetchDevelopers]);
+
+  async function handleSyncAll() {
+    setSyncing(true);
+    try {
+      await api.admin.sync.trigger();
+      toast.success("Sync triggered for all developers");
+      api.admin.sync.status().then((s) => setSyncStatus(s as SyncStatus)).catch(() => {});
+    } catch {
+      toast.error("Failed to trigger sync");
+    } finally {
+      setSyncing(false);
+    }
+  }
 
   async function handleAdd(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -104,14 +124,12 @@ export default function DashboardPage() {
       </header>
 
       <main className="mx-auto max-w-6xl px-6 py-8 space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Total Developers</CardTitle>
             </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold">{developers.length}</p>
-            </CardContent>
+            <CardContent><p className="text-3xl font-bold">{developers.length}</p></CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">
@@ -129,10 +147,28 @@ export default function DashboardPage() {
               <p className="text-3xl font-bold">{developers.reduce((s, d) => s + d.total_stars, 0)}</p>
             </CardContent>
           </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">GitHub Quota</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-bold">
+                {syncStatus ? syncStatus.github_rate_limit.remaining : "—"}
+              </p>
+              {syncStatus && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  resets {new Date(syncStatus.github_rate_limit.reset_at).toLocaleTimeString()}
+                </p>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Developers</h2>
+          <Button variant="outline" size="sm" onClick={handleSyncAll} disabled={syncing}>
+            {syncing ? "Syncing…" : "Sync All"}
+          </Button>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger
               className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
