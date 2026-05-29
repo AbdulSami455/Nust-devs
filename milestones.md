@@ -17,8 +17,8 @@
 | M2 | GitHub Client & Rate Limiter | Week 2–3 | ✅ Done |
 | M3 | Sync Worker | Week 3–4 | ✅ Done |
 | M4 | Stats Engine & Public API | Week 4–5 | ✅ Done |
-| M5 | Public Dashboard | Week 5–7 | 🔄 In progress |
-| M7 | Production Hardening | Week 7–8 | ⬜ Not started |
+| M5 | Public Dashboard | Week 5–7 | ✅ Done |
+| M7 | Production Hardening | Week 7–8 | 🔄 In progress |
 | M6 | Email Verification (optional) | Week 8+ | ⬜ Low priority |
 | M8 | Future Enhancements | Post-v1 | ⬜ Backlog |
 
@@ -234,10 +234,10 @@ Weights configurable in admin settings. Recompute after each sync.
 - [x] Developer list — searchable/filterable grid
 - [x] Developer profile — heatmap, language chart, repo table, stats cards
 - [x] Leaderboard — sortable table with sparklines
-- [ ] Projects page — top repos grid/table
-- [ ] Stats page — platform-wide charts and trends
-- [ ] Responsive layout, loading states, error boundaries
-- [ ] SEO metadata (Open Graph for developer profiles)
+- [x] Projects page — top repos grid/table
+- [x] Stats page — platform-wide charts and trends
+- [x] Responsive layout, loading states, error boundaries
+- [x] SEO metadata (Open Graph for developer profiles)
 
 ### Chart Types
 
@@ -250,10 +250,10 @@ Weights configurable in admin settings. Recompute after each sync.
 
 ### Exit Criteria
 
-- [ ] All pages render live data from the API
-- [ ] Charts update after a sync completes
-- [ ] Mobile layout is usable
-- [ ] Profile pages have correct Open Graph tags
+- [x] All pages render live data from the API
+- [x] Charts update after a sync completes
+- [x] Mobile layout is usable
+- [x] Profile pages have correct Open Graph tags
 
 ### Pages
 
@@ -330,14 +330,14 @@ Additional school/department domains can be added via admin settings.
 
 ### Tasks
 
-- [ ] Production Dockerfile (multi-stage Go build + Next.js standalone)
-- [ ] Docker Compose: PostgreSQL, Redis, API, worker, web
+- [x] Production Dockerfile (multi-stage Go build + Next.js standalone)
+- [x] Docker Compose: PostgreSQL, Redis, API, worker, web
 - [ ] Environment-specific config (dev / staging / prod)
-- [ ] Rate limit monitoring in admin dashboard
+- [x] Rate limit monitoring in admin dashboard
 - [ ] Error alerting hooks (log aggregation ready)
-- [ ] Database indexes for leaderboard and snapshot queries
-- [ ] API response caching strategy (Redis TTLs per endpoint)
-- [ ] Comprehensive README: architecture, API docs, deployment guide
+- [x] Database indexes for leaderboard and snapshot queries
+- [x] API response caching strategy (Redis TTLs per endpoint)
+- [x] Comprehensive README: architecture, API docs, deployment guide
 - [ ] Seed script for demo data
 
 ### Exit Criteria
