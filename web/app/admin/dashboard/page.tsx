@@ -78,7 +78,7 @@ export default function DashboardPage() {
     try {
       await api.developers.create({
         github_username: form.github_username,
-        email: form.email,
+        ...(form.email ? { email: form.email } : {}),
         display_name: form.display_name || undefined,
         notes: form.notes || undefined,
       });
@@ -185,8 +185,8 @@ export default function DashboardPage() {
                   <Input id="username" required value={form.github_username} onChange={field("github_username")} />
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="dev-email">Email *</Label>
-                  <Input id="dev-email" type="email" required value={form.email} onChange={field("email")} />
+                  <Label htmlFor="dev-email">Email</Label>
+                  <Input id="dev-email" type="email" value={form.email} onChange={field("email")} />
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor="display-name">Display Name</Label>
@@ -237,7 +237,7 @@ export default function DashboardPage() {
                         {dev.github_username}
                       </a>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">{dev.email}</TableCell>
+                    <TableCell className="text-muted-foreground">{dev.email || "—"}</TableCell>
                     <TableCell>{dev.display_name ?? "—"}</TableCell>
                     <TableCell>
                       <Badge variant={dev.verification_status === "registered" ? "secondary" : "default"}>

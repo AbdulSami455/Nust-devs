@@ -83,7 +83,7 @@ export const api = {
   admin: {
     developers: {
       list: () => request<Developer[]>("/api/v1/admin/developers"),
-      create: (data: { github_username: string; email: string; display_name?: string; notes?: string }) =>
+      create: (data: { github_username: string; email?: string; display_name?: string; notes?: string }) =>
         request<Developer>("/api/v1/admin/developers", {
           method: "POST",
           body: JSON.stringify(data),
@@ -125,7 +125,7 @@ export const api = {
   // Keep old shape for backward compat with dashboard page
   developers: {
     list: () => request<Developer[]>("/api/v1/admin/developers"),
-    create: (data: { github_username: string; email: string; display_name?: string; notes?: string }) =>
+    create: (data: { github_username: string; email?: string; display_name?: string; notes?: string }) =>
       request<Developer>("/api/v1/admin/developers", {
         method: "POST",
         body: JSON.stringify(data),
