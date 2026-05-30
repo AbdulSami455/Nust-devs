@@ -57,6 +57,15 @@ func (r *SyncRepo) UpsertRepo(ctx context.Context, repo gh.Repo) (string, error)
 	return id, err
 }
 
+func (r *SyncRepo) RepoIDByGithubID(ctx context.Context, githubID int64) (string, error) {
+	var id string
+	err := r.db.QueryRow(ctx, `SELECT id FROM repos WHERE github_id = $1`, githubID).Scan(&id)
+	if err != nil {
+		return "", fmt.Errorf("repo lookup github_id=%d: %w", githubID, err)
+	}
+	return id, nil
+}
+
 func (r *SyncRepo) LinkDeveloperRepo(ctx context.Context, devID, repoID string) error {
 	_, err := r.db.Exec(ctx, `
 		INSERT INTO developer_repos (developer_id, repo_id) VALUES ($1, $2)

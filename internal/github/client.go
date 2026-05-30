@@ -28,7 +28,7 @@ func NewClient(token string) *Client {
 // NewClientWithBaseURL is used in tests to point the client at a fake server.
 func NewClientWithBaseURL(token, restBase, gqlBase string) *Client {
 	return &Client{
-		http:       &http.Client{Timeout: 30 * time.Second},
+		http:        &http.Client{Timeout: 60 * time.Second},
 		token:      token,
 		limiter:    newRateLimiter(),
 		restBase:   restBase,

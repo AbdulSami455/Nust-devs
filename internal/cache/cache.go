@@ -41,3 +41,21 @@ func (c *Cache) SetJSON(ctx context.Context, key string, val any, ttl time.Durat
 func (c *Cache) Del(ctx context.Context, keys ...string) error {
 	return c.client.Del(ctx, keys...).Err()
 }
+
+// InvalidatePublic clears cached public API responses after a sync completes.
+func (c *Cache) InvalidatePublic(ctx context.Context) error {
+	var keys []string
+	for _, prefix := range []string{"developers:*", "leaderboard:*", "projects:*", "stats:*"} {
+		iter := c.client.Scan(ctx, 0, prefix, 100).Iterator()
+		for iter.Next(ctx) {
+			keys = append(keys, iter.Val())
+		}
+		if err := iter.Err(); err != nil {
+			return err
+		}
+	}
+	if len(keys) == 0 {
+		return nil
+	}
+	return c.client.Del(ctx, keys...).Err()
+}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"sort"
 
 	gh "github.com/abdulsami/nust-devs/internal/github"
 	"github.com/abdulsami/nust-devs/internal/models"
@@ -53,30 +54,49 @@ func (s *SyncService) SyncDeveloper(ctx context.Context, dev *models.Developer) 
 		if err := s.syncRepo.LinkDeveloperRepo(ctx, dev.ID, repoID); err != nil {
 			log.Warn("link repo failed", "repo", repo.FullName, "err", err)
 		}
+	}
 
-		// 3. Languages (only for non-forks to save API quota)
-		if !repo.Fork {
-			langs, err := s.github.GetLanguages(ctx, user.Login, repo.Name)
-			if err != nil {
-				log.Warn("fetch languages failed", "repo", repo.FullName, "err", err)
-				continue
-			}
-			if err := s.syncRepo.UpsertRepoLanguages(ctx, repoID, langs); err != nil {
-				log.Warn("upsert languages failed", "repo", repo.FullName, "err", err)
-			}
+	// 3. Languages — top repos by stars only (keeps sync fast; 56 repos × API calls is slow)
+	sort.Slice(repos, func(i, j int) bool {
+		return repos[i].StargazersCount > repos[j].StargazersCount
+	})
+	langLimit := 20
+	langFetched := 0
+	for _, repo := range repos {
+		if repo.Fork {
+			continue
+		}
+		if langFetched >= langLimit {
+			break
+		}
+		langFetched++
+		repoID, err := s.syncRepo.RepoIDByGithubID(ctx, repo.ID)
+		if err != nil {
+			log.Warn("repo id lookup failed", "repo", repo.FullName, "err", err)
+			continue
+		}
+		langs, err := s.github.GetLanguages(ctx, user.Login, repo.Name)
+		if err != nil {
+			log.Warn("fetch languages failed", "repo", repo.FullName, "err", err)
+			continue
+		}
+		if err := s.syncRepo.UpsertRepoLanguages(ctx, repoID, langs); err != nil {
+			log.Warn("upsert languages failed", "repo", repo.FullName, "err", err)
 		}
 	}
 	log.Info("repos synced", "count", len(repos))
 
-	// 4. Contributions
+	// 4. Contributions (GraphQL — non-fatal; sync still succeeds without heatmap data)
 	days, err := s.github.GetContributions(ctx, dev.GithubUsername)
 	if err != nil {
-		return fmt.Errorf("fetch contributions: %w", err)
+		log.Warn("fetch contributions skipped", "err", err)
+	} else {
+		if err := s.syncRepo.UpsertContributionDays(ctx, dev.ID, days); err != nil {
+			log.Warn("upsert contributions failed", "err", err)
+		} else {
+			log.Info("contributions synced", "days", len(days))
+		}
 	}
-	if err := s.syncRepo.UpsertContributionDays(ctx, dev.ID, days); err != nil {
-		return fmt.Errorf("upsert contributions: %w", err)
-	}
-	log.Info("contributions synced", "days", len(days))
 
 	// 5. Refresh dev record for snapshot
 	fresh, err := s.devRepo.GetByID(ctx, dev.ID)

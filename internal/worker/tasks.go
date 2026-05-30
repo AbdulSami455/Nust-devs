@@ -3,6 +3,7 @@ package worker
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/hibiken/asynq"
 )
@@ -23,5 +24,10 @@ func NewSyncDeveloperTask(devID, username string) (*asynq.Task, error) {
 	if err != nil {
 		return nil, fmt.Errorf("marshal sync task: %w", err)
 	}
-	return asynq.NewTask(TaskSyncDeveloper, payload), nil
+	return asynq.NewTask(
+		TaskSyncDeveloper,
+		payload,
+		asynq.Timeout(10*time.Minute),
+		asynq.MaxRetry(3),
+	), nil
 }

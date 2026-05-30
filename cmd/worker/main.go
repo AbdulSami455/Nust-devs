@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/abdulsami/nust-devs/internal/cache"
 	"github.com/abdulsami/nust-devs/internal/config"
 	"github.com/abdulsami/nust-devs/internal/db"
 	gh "github.com/abdulsami/nust-devs/internal/github"
@@ -36,6 +37,7 @@ func main() {
 	}
 
 	redisOpt := asynq.RedisClientOpt{Addr: cfg.RedisAddr()}
+	redisCache := cache.New(cfg.RedisAddr())
 	ghClient := gh.NewClient(ghToken)
 	syncRepo := repository.NewSyncRepo(pool)
 	devRepo := repository.NewDeveloperRepo(pool)
@@ -44,7 +46,7 @@ func main() {
 	asynqClient := asynq.NewClient(redisOpt)
 	defer asynqClient.Close()
 
-	syncProcessor := worker.NewSyncProcessor(svc)
+	syncProcessor := worker.NewSyncProcessor(svc, redisCache)
 	bulkProcessor := worker.NewBulkSyncProcessor(devRepo, asynqClient)
 
 	// Asynq server — 3 concurrent sync slots to respect rate limits
