@@ -165,6 +165,15 @@ func (h *PublicHandler) GetOSSStats(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (h *PublicHandler) GetInnovationGraph(w http.ResponseWriter, r *http.Request) {
+	granularity := r.URL.Query().Get("granularity")
+	periods, _ := strconv.Atoi(r.URL.Query().Get("periods"))
+	key := fmt.Sprintf("stats:innovation:%s:%d", granularity, periods)
+	h.cachedJSON(w, r, key, 15*time.Minute, func() (any, error) {
+		return h.stats.GetInnovationGraph(r.Context(), granularity, periods)
+	})
+}
+
 func pagination(r *http.Request) (page, limit int) {
 	page, _ = strconv.Atoi(r.URL.Query().Get("page"))
 	limit, _ = strconv.Atoi(r.URL.Query().Get("limit"))

@@ -40,18 +40,19 @@ func (r *SyncRepo) UpsertDeveloperProfile(ctx context.Context, devID string, u *
 func (r *SyncRepo) UpsertRepo(ctx context.Context, repo gh.Repo) (string, error) {
 	var id string
 	err := r.db.QueryRow(ctx, `
-		INSERT INTO repos (github_id, owner, name, full_name, description, url, language, stars, forks, is_fork, pushed_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		INSERT INTO repos (github_id, owner, name, full_name, description, url, language, license, stars, forks, is_fork, pushed_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 		ON CONFLICT (github_id) DO UPDATE SET
 			description = EXCLUDED.description,
 			language    = EXCLUDED.language,
+			license     = EXCLUDED.license,
 			stars       = EXCLUDED.stars,
 			forks       = EXCLUDED.forks,
 			pushed_at   = EXCLUDED.pushed_at,
 			updated_at  = NOW()
 		RETURNING id`,
 		repo.ID, ownerOf(repo.FullName), repo.Name, repo.FullName,
-		repo.Description, repo.HTMLURL, repo.Language,
+		repo.Description, repo.HTMLURL, repo.Language, repo.LicenseName(),
 		repo.StargazersCount, repo.ForksCount, repo.Fork, repo.PushedAt,
 	).Scan(&id)
 	return id, err

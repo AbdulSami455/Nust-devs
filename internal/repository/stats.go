@@ -355,3 +355,231 @@ func (r *StatsRepo) GetOSSStats(ctx context.Context) (*models.OSSStats, error) {
 	s.TopLanguage = topLang
 	return &s, nil
 }
+
+func (r *StatsRepo) GetInnovationGraph(ctx context.Context, granularity string, periods int) (*models.InnovationGraph, error) {
+	if granularity != "monthly" {
+		granularity = "quarterly"
+	}
+	if periods < 4 || periods > 24 {
+		periods = 8
+	}
+
+	since := time.Now().UTC()
+	if granularity == "monthly" {
+		since = since.AddDate(0, -(periods - 1), 0)
+	} else {
+		since = since.AddDate(0, -((periods-1)*3), 0)
+	}
+	since = time.Date(since.Year(), since.Month(), 1, 0, 0, 0, 0, time.UTC)
+
+	periodKeys := buildPeriodKeys(granularity, periods)
+
+	pushes, err := r.trendSeries(ctx, fmt.Sprintf(`
+		SELECT %s AS period, COALESCE(SUM(count), 0)::int
+		FROM contribution_days
+		WHERE date >= $1
+		GROUP BY date_trunc('%s', date)
+		ORDER BY date_trunc('%s', date)`, periodKeyExpr(granularity, "date"), truncUnit(granularity), truncUnit(granularity)), since)
+	if err != nil {
+		return nil, err
+	}
+
+	repositories, err := r.trendSeries(ctx, fmt.Sprintf(`
+		SELECT %s AS period, COUNT(DISTINCT r.id)::int
+		FROM repos r
+		WHERE EXISTS (SELECT 1 FROM developer_repos dr WHERE dr.repo_id = r.id)
+		  AND r.pushed_at IS NOT NULL AND r.pushed_at >= $1
+		GROUP BY date_trunc('%s', r.pushed_at)
+		ORDER BY date_trunc('%s', r.pushed_at)`, periodKeyExpr(granularity, "r.pushed_at"), truncUnit(granularity), truncUnit(granularity)), since)
+	if err != nil {
+		return nil, err
+	}
+
+	developers, err := r.trendSeries(ctx, fmt.Sprintf(`
+		SELECT %s AS period, COUNT(*)::int
+		FROM developers
+		WHERE created_at >= $1
+		GROUP BY date_trunc('%s', created_at)
+		ORDER BY date_trunc('%s', created_at)`, periodKeyExpr(granularity, "created_at"), truncUnit(granularity), truncUnit(granularity)), since)
+	if err != nil {
+		return nil, err
+	}
+
+	organizations, err := r.trendSeries(ctx, fmt.Sprintf(`
+		SELECT %s AS period, COUNT(*)::int
+		FROM developers
+		WHERE created_at >= $1 AND company IS NOT NULL AND btrim(company) <> ''
+		GROUP BY date_trunc('%s', created_at)
+		ORDER BY date_trunc('%s', created_at)`, periodKeyExpr(granularity, "created_at"), truncUnit(granularity), truncUnit(granularity)), since)
+	if err != nil {
+		return nil, err
+	}
+
+	languages, err := r.nameCounts(ctx, `
+		SELECT rl.language, COUNT(DISTINCT rl.repo_id)::int
+		FROM repo_languages rl
+		JOIN repos r ON r.id = rl.repo_id
+		WHERE EXISTS (SELECT 1 FROM developer_repos dr WHERE dr.repo_id = r.id)
+		GROUP BY rl.language
+		ORDER BY 2 DESC
+		LIMIT 12`)
+	if err != nil {
+		return nil, err
+	}
+
+	licenses, err := r.nameCounts(ctx, `
+		SELECT COALESCE(NULLIF(btrim(r.license), ''), 'No License') AS license, COUNT(*)::int
+		FROM repos r
+		WHERE EXISTS (SELECT 1 FROM developer_repos dr WHERE dr.repo_id = r.id)
+		GROUP BY 1
+		ORDER BY 2 DESC
+		LIMIT 12`)
+	if err != nil {
+		return nil, err
+	}
+
+	topOrgs, err := r.nameCounts(ctx, `
+		SELECT COALESCE(NULLIF(btrim(company), ''), 'Independent') AS org, COUNT(*)::int
+		FROM developers
+		WHERE last_synced_at IS NOT NULL
+		GROUP BY 1
+		ORDER BY 2 DESC
+		LIMIT 10`)
+	if err != nil {
+		return nil, err
+	}
+
+	topContribs, err := r.topContributors(ctx, 10)
+	if err != nil {
+		return nil, err
+	}
+
+	return &models.InnovationGraph{
+		Granularity:      granularity,
+		Pushes:           fillTrendSeries(periodKeys, pushes, granularity),
+		Repositories:     fillTrendSeries(periodKeys, repositories, granularity),
+		Developers:       fillTrendSeries(periodKeys, developers, granularity),
+		Organizations:    fillTrendSeries(periodKeys, organizations, granularity),
+		Languages:        languages,
+		Licenses:         licenses,
+		TopOrganizations: topOrgs,
+		TopContributors:  topContribs,
+	}, nil
+}
+
+func (r *StatsRepo) trendSeries(ctx context.Context, query string, since time.Time) (map[string]int, error) {
+	rows, err := r.db.Query(ctx, query, since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string]int{}
+	for rows.Next() {
+		var period string
+		var value int
+		if err := rows.Scan(&period, &value); err != nil {
+			return nil, err
+		}
+		out[period] = value
+	}
+	return out, nil
+}
+
+func truncUnit(granularity string) string {
+	if granularity == "monthly" {
+		return "month"
+	}
+	return "quarter"
+}
+
+func periodKeyExpr(granularity, column string) string {
+	if granularity == "monthly" {
+		return fmt.Sprintf("to_char(date_trunc('month', %s), 'YYYY-MM')", column)
+	}
+	return fmt.Sprintf("(extract(year from date_trunc('quarter', %s))::int || '-' || extract(quarter from date_trunc('quarter', %s))::int)", column, column)
+}
+
+func (r *StatsRepo) nameCounts(ctx context.Context, query string) ([]models.NameCount, error) {
+	rows, err := r.db.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []models.NameCount
+	for rows.Next() {
+		var item models.NameCount
+		if err := rows.Scan(&item.Name, &item.Count); err != nil {
+			return nil, err
+		}
+		out = append(out, item)
+	}
+	return out, nil
+}
+
+func (r *StatsRepo) topContributors(ctx context.Context, limit int) ([]models.ContributorStat, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT github_username, COALESCE(display_name, ''), activity_score, total_stars
+		FROM developers
+		WHERE last_synced_at IS NOT NULL
+		ORDER BY activity_score DESC
+		LIMIT $1`, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []models.ContributorStat
+	for rows.Next() {
+		var c models.ContributorStat
+		if err := rows.Scan(&c.Username, &c.Name, &c.Score, &c.Stars); err != nil {
+			return nil, err
+		}
+		out = append(out, c)
+	}
+	return out, nil
+}
+
+func buildPeriodKeys(granularity string, count int) []string {
+	now := time.Now().UTC()
+	keys := make([]string, 0, count)
+	if granularity == "monthly" {
+		start := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
+		start = start.AddDate(0, -(count - 1), 0)
+		for i := 0; i < count; i++ {
+			d := start.AddDate(0, i, 0)
+			keys = append(keys, fmt.Sprintf("%d-%02d", d.Year(), int(d.Month())))
+		}
+		return keys
+	}
+	start := time.Date(now.Year(), time.January, 1, 0, 0, 0, 0, time.UTC)
+	q := (int(now.Month())-1)/3 + 1
+	start = start.AddDate(0, (q-count)*3, 0)
+	for i := 0; i < count; i++ {
+		d := start.AddDate(0, i*3, 0)
+		qtr := (int(d.Month())-1)/3 + 1
+		keys = append(keys, fmt.Sprintf("%d-%d", d.Year(), qtr))
+	}
+	return keys
+}
+
+func fillTrendSeries(keys []string, values map[string]int, granularity string) []models.TrendPoint {
+	out := make([]models.TrendPoint, 0, len(keys))
+	for _, key := range keys {
+		out = append(out, models.TrendPoint{
+			Period: key,
+			Label:  periodLabel(key, granularity),
+			Value:  values[key],
+		})
+	}
+	return out
+}
+
+func periodLabel(key, granularity string) string {
+	if granularity == "monthly" {
+		var y, m int
+		fmt.Sscanf(key, "%d-%d", &y, &m)
+		return time.Date(y, time.Month(m), 1, 0, 0, 0, 0, time.UTC).Format("Jan 2006")
+	}
+	var y, q int
+	fmt.Sscanf(key, "%d-%d", &y, &q)
+	return fmt.Sprintf("Q%d %d", q, y)
+}

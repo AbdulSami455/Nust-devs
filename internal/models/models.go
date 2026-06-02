@@ -97,3 +97,33 @@ type CommunityActivityDay struct {
 	Date  string `json:"date"`
 	Count int    `json:"count"`
 }
+
+type TrendPoint struct {
+	Period string `json:"period"`
+	Label  string `json:"label"`
+	Value  int    `json:"value"`
+}
+
+type NameCount struct {
+	Name  string `json:"name"`
+	Count int    `json:"count"`
+}
+
+type ContributorStat struct {
+	Username string  `json:"username"`
+	Name     string  `json:"name,omitempty"`
+	Score    float64 `json:"score"`
+	Stars    int     `json:"stars"`
+}
+
+type InnovationGraph struct {
+	Granularity      string            `json:"granularity"`
+	Pushes           []TrendPoint      `json:"pushes"`
+	Repositories     []TrendPoint      `json:"repositories"`
+	Developers       []TrendPoint      `json:"developers"`
+	Organizations    []TrendPoint      `json:"organizations"`
+	Languages        []NameCount       `json:"languages"`
+	Licenses         []NameCount       `json:"licenses"`
+	TopOrganizations []NameCount       `json:"top_organizations"`
+	TopContributors  []ContributorStat `json:"top_contributors"`
+}

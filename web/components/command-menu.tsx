@@ -17,6 +17,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 const pages = [
   { href: "/", label: "Home", icon: Home },
+  { href: "/innovation", label: "Innovation Graph", icon: BarChart3 },
   { href: "/developers", label: "Developers", icon: Users },
   { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
   { href: "/projects", label: "Projects", icon: FolderGit2 },
