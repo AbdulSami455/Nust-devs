@@ -47,12 +47,6 @@ export function NavHeader() {
         <div className="flex items-center gap-1 sm:gap-2">
           <CommandMenu />
           <ThemeToggle />
-          <Link
-            href="/admin"
-            className="rounded-lg px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-          >
-            Admin
-          </Link>
         </div>
       </div>
     </header>

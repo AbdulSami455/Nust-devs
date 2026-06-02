@@ -11,7 +11,6 @@ import {
   Users,
   FolderGit2,
   BarChart3,
-  Settings,
 } from "lucide-react";
 import { api, type Developer } from "@/lib/api";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -22,7 +21,6 @@ const pages = [
   { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
   { href: "/projects", label: "Projects", icon: FolderGit2 },
   { href: "/stats", label: "Stats", icon: BarChart3 },
-  { href: "/admin", label: "Admin", icon: Settings },
 ];
 
 export function CommandMenu() {
