@@ -87,6 +87,36 @@ export interface ActivityEvent {
   occurred_at: string;
 }
 
+export interface InnovationGraph {
+  granularity: string;
+  pushes: TrendPoint[];
+  repositories: TrendPoint[];
+  developers: TrendPoint[];
+  organizations: TrendPoint[];
+  languages: NameCount[];
+  licenses: NameCount[];
+  top_organizations: NameCount[];
+  top_contributors: ContributorStat[];
+}
+
+export interface TrendPoint {
+  period: string;
+  label: string;
+  value: number;
+}
+
+export interface NameCount {
+  name: string;
+  count: number;
+}
+
+export interface ContributorStat {
+  username: string;
+  name?: string;
+  score: number;
+  stars: number;
+}
+
 export interface OSSStats {
   original_projects: number;
   fork_projects: number;
@@ -164,6 +194,10 @@ export const api = {
     recentActivity: (limit = 15) =>
       request<ActivityEvent[]>(`/api/v1/activity/recent?limit=${limit}`),
     openSource: () => request<OSSStats>("/api/v1/stats/open-source"),
+    innovationGraph: (granularity = "quarterly", periods = 8) =>
+      request<InnovationGraph>(
+        `/api/v1/stats/innovation-graph?granularity=${granularity}&periods=${periods}`
+      ),
   },
 
   developers: {

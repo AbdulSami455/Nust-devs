@@ -8,57 +8,61 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import type { CommunityActivityDay } from "@/lib/api";
+import type { TrendPoint } from "@/lib/api";
 import { ChartContainer } from "@/components/charts/chart-container";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const CHART_HEIGHT = 256;
+const CHART_HEIGHT = 208;
 
-export function ActivityChart({
+export function TrendChart({
+  title,
+  subtitle,
   data,
   loading,
+  color = "var(--chart-1)",
 }: {
-  data: CommunityActivityDay[];
+  title: string;
+  subtitle?: string;
+  data: TrendPoint[];
   loading: boolean;
+  color?: string;
 }) {
-  const chartData = data.map((d) => ({
-    date: d.date.slice(5),
-    commits: d.count,
-  }));
+  const chartData = data.map((d) => ({ label: d.label, value: d.value }));
+  const gradientId = `trend-${title.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase()}`;
 
   return (
-    <div className="bento-card col-span-full min-w-0 lg:col-span-2 lg:row-span-2">
+    <div className="bento-card min-w-0">
       <div className="mb-4">
-        <h3 className="font-semibold">Community Pulse</h3>
-        <p className="text-sm text-muted-foreground">Contributions across all tracked developers (30 days)</p>
+        <h3 className="font-semibold">{title}</h3>
+        {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
       </div>
       {loading ? (
         <Skeleton className="w-full" style={{ height: CHART_HEIGHT }} />
-      ) : chartData.length === 0 ? (
+      ) : chartData.every((d) => d.value === 0) ? (
         <div
           className="flex items-center justify-center text-sm text-muted-foreground"
           style={{ height: CHART_HEIGHT }}
         >
-          No activity data yet — sync developers to populate the chart.
+          No data for this period yet.
         </div>
       ) : (
         <ChartContainer height={CHART_HEIGHT}>
-          <AreaChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+          <AreaChart data={chartData} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
             <defs>
-              <linearGradient id="pulse" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.4} />
-                <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
+              <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={color} stopOpacity={0.35} />
+                <stop offset="100%" stopColor={color} stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" className="stroke-border/40" vertical={false} />
             <XAxis
-              dataKey="date"
-              tick={{ fontSize: 11 }}
+              dataKey="label"
+              tick={{ fontSize: 10 }}
               tickLine={false}
               axisLine={false}
-              className="text-muted-foreground"
+              interval="preserveStartEnd"
             />
-            <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} width={32} />
+            <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} width={36} />
             <Tooltip
               contentStyle={{
                 background: "var(--popover)",
@@ -69,10 +73,10 @@ export function ActivityChart({
             />
             <Area
               type="monotone"
-              dataKey="commits"
-              stroke="var(--chart-1)"
+              dataKey="value"
+              stroke={color}
               strokeWidth={2}
-              fill="url(#pulse)"
+              fill={`url(#${gradientId})`}
             />
           </AreaChart>
         </ChartContainer>
