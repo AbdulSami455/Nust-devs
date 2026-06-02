@@ -97,8 +97,21 @@ func (h *PublicHandler) GetLeaderboard(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *PublicHandler) GetTopProjects(w http.ResponseWriter, r *http.Request) {
-	h.cachedJSON(w, r, "projects:top", 10*time.Minute, func() (any, error) {
-		return h.stats.GetTopProjects(r.Context(), 30)
+	category := r.URL.Query().Get("category")
+	language := r.URL.Query().Get("language")
+	sortBy := r.URL.Query().Get("sort")
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	if limit < 1 || limit > 100 {
+		limit = 30
+	}
+	key := fmt.Sprintf("projects:list:%s:%s:%s:%d", category, language, sortBy, limit)
+	h.cachedJSON(w, r, key, 10*time.Minute, func() (any, error) {
+		return h.stats.ListProjects(r.Context(), repository.ProjectFilter{
+			Category: category,
+			Language: language,
+			Sort:     sortBy,
+			Limit:    limit,
+		})
 	})
 }
 
@@ -128,6 +141,27 @@ func (h *PublicHandler) GetCommunityActivity(w http.ResponseWriter, r *http.Requ
 func (h *PublicHandler) GetSpotlight(w http.ResponseWriter, r *http.Request) {
 	h.cachedJSON(w, r, "developers:spotlight", 5*time.Minute, func() (any, error) {
 		return h.stats.GetSpotlightDeveloper(r.Context())
+	})
+}
+
+func (h *PublicHandler) GetRecentActivity(w http.ResponseWriter, r *http.Request) {
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	key := fmt.Sprintf("activity:recent:%d", limit)
+	h.cachedJSON(w, r, key, 2*time.Minute, func() (any, error) {
+		events, err := h.stats.GetRecentActivity(r.Context(), limit)
+		if err != nil {
+			return nil, err
+		}
+		if events == nil {
+			return []struct{}{}, nil
+		}
+		return events, nil
+	})
+}
+
+func (h *PublicHandler) GetOSSStats(w http.ResponseWriter, r *http.Request) {
+	h.cachedJSON(w, r, "stats:open-source", 10*time.Minute, func() (any, error) {
+		return h.stats.GetOSSStats(r.Context())
 	})
 }
 

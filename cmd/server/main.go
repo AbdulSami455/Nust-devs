@@ -65,9 +65,11 @@ func main() {
 	mux.HandleFunc("GET /api/v1/developers/{username}/contributions", pubH.GetDeveloperContributions)
 	mux.HandleFunc("GET /api/v1/leaderboard", pubH.GetLeaderboard)
 	mux.HandleFunc("GET /api/v1/projects/top", pubH.GetTopProjects)
+	mux.HandleFunc("GET /api/v1/activity/recent", pubH.GetRecentActivity)
 	mux.HandleFunc("GET /api/v1/stats/overview", pubH.GetOverview)
 	mux.HandleFunc("GET /api/v1/stats/languages", pubH.GetLanguages)
 	mux.HandleFunc("GET /api/v1/stats/community-activity", pubH.GetCommunityActivity)
+	mux.HandleFunc("GET /api/v1/stats/open-source", pubH.GetOSSStats)
 
 	// Admin auth (public)
 	mux.HandleFunc("POST /api/v1/admin/auth/login", authH.Login)

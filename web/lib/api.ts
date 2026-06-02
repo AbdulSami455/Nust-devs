@@ -46,12 +46,14 @@ export interface PublicRepo {
   id: string;
   name: string;
   full_name: string;
+  owner?: string;
   description: string;
   url: string;
   language?: string;
   stars: number;
   forks: number;
   is_fork: boolean;
+  pushed_at?: string;
 }
 
 export interface ContributionDay {
@@ -77,6 +79,26 @@ export interface LanguageStat {
   repo_count: number;
 }
 
+export interface ActivityEvent {
+  type: string;
+  username: string;
+  repo?: string;
+  message: string;
+  occurred_at: string;
+}
+
+export interface OSSStats {
+  original_projects: number;
+  fork_projects: number;
+  total_stars: number;
+  total_forks_received: number;
+  contributors: number;
+  top_language?: string;
+}
+
+export type ProjectCategory = "all" | "original" | "forks";
+export type ProjectSort = "stars" | "recent" | "forks";
+
 export const api = {
   login: (email: string, password: string) =>
     request<{ token: string }>("/api/v1/admin/auth/login", {
@@ -84,7 +106,6 @@ export const api = {
       body: JSON.stringify({ email, password }),
     }),
 
-  // Admin endpoints
   admin: {
     developers: {
       list: () => request<Developer[]>("/api/v1/admin/developers"),
@@ -108,7 +129,6 @@ export const api = {
     },
   },
 
-  // Public endpoints (no auth)
   public: {
     developers: {
       list: (page = 1, limit = 20) =>
@@ -122,15 +142,30 @@ export const api = {
     },
     leaderboard: (sortBy = "activity_score", page = 1, limit = 20) =>
       request<Developer[]>(`/api/v1/leaderboard?sort_by=${sortBy}&page=${page}&limit=${limit}`),
-    topProjects: () => request<PublicRepo[]>("/api/v1/projects/top"),
+    topProjects: (opts?: {
+      category?: ProjectCategory;
+      language?: string;
+      sort?: ProjectSort;
+      limit?: number;
+    }) => {
+      const params = new URLSearchParams();
+      if (opts?.category && opts.category !== "all") params.set("category", opts.category);
+      if (opts?.language) params.set("language", opts.language);
+      if (opts?.sort) params.set("sort", opts.sort);
+      if (opts?.limit) params.set("limit", String(opts.limit));
+      const q = params.toString();
+      return request<PublicRepo[]>(`/api/v1/projects/top${q ? `?${q}` : ""}`);
+    },
     overview: () => request<Overview>("/api/v1/stats/overview"),
     languages: () => request<LanguageStat[]>("/api/v1/stats/languages"),
     communityActivity: (days = 30) =>
       request<CommunityActivityDay[]>(`/api/v1/stats/community-activity?days=${days}`),
     spotlight: () => request<Developer>("/api/v1/developers/spotlight"),
+    recentActivity: (limit = 15) =>
+      request<ActivityEvent[]>(`/api/v1/activity/recent?limit=${limit}`),
+    openSource: () => request<OSSStats>("/api/v1/stats/open-source"),
   },
 
-  // Keep old shape for backward compat with dashboard page
   developers: {
     list: () => request<Developer[]>("/api/v1/admin/developers"),
     create: (data: { github_username: string; email?: string; display_name?: string; notes?: string }) =>

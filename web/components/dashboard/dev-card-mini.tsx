@@ -25,7 +25,7 @@ export function DevCardMini({ dev }: { dev: Developer }) {
           )}
         </div>
         <div className="mt-4 flex gap-3 text-xs text-muted-foreground">
-          <span>★ {dev.total_stars}</span>
+          <span>{dev.total_stars} stars</span>
           <span>{dev.public_repos} repos</span>
           <span>{dev.followers} followers</span>
         </div>

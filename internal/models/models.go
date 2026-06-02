@@ -61,12 +61,31 @@ type PublicRepo struct {
 	ID          string  `json:"id"`
 	Name        string  `json:"name"`
 	FullName    string  `json:"full_name"`
+	Owner       string  `json:"owner"`
 	Description string  `json:"description"`
 	URL         string  `json:"url"`
 	Language    *string `json:"language,omitempty"`
 	Stars       int     `json:"stars"`
 	Forks       int     `json:"forks"`
 	IsFork      bool    `json:"is_fork"`
+	PushedAt    *string `json:"pushed_at,omitempty"`
+}
+
+type ActivityEvent struct {
+	Type       string `json:"type"`
+	Username   string `json:"username"`
+	Repo       string `json:"repo,omitempty"`
+	Message    string `json:"message"`
+	OccurredAt string `json:"occurred_at"`
+}
+
+type OSSStats struct {
+	OriginalProjects   int     `json:"original_projects"`
+	ForkProjects       int     `json:"fork_projects"`
+	TotalStars         int     `json:"total_stars"`
+	TotalForksReceived int     `json:"total_forks_received"`
+	Contributors       int     `json:"contributors"`
+	TopLanguage        *string `json:"top_language,omitempty"`
 }
 
 type ContributionDay struct {

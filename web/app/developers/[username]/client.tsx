@@ -1,16 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { api, type Developer, type PublicRepo, type ContributionDay } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { NavHeader } from "@/components/nav-header";
+import { Skeleton } from "@/components/ui/skeleton";
+import { DevCard } from "@/components/profile/dev-card";
+import { ContributionHeatmap } from "@/components/profile/contribution-heatmap";
 
 export function ProfileClient({ username }: { username: string }) {
   const [dev, setDev] = useState<Developer | null>(null);
   const [repos, setRepos] = useState<PublicRepo[]>([]);
   const [contributions, setContributions] = useState<ContributionDay[]>([]);
+  const [rank, setRank] = useState<number | undefined>();
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
@@ -19,152 +21,103 @@ export function ProfileClient({ username }: { username: string }) {
       api.public.developers.get(username),
       api.public.developers.repos(username),
       api.public.developers.contributions(username),
-    ]).then(([d, r, c]) => {
-      setDev(d);
-      setRepos(r ?? []);
-      setContributions(c ?? []);
-    }).catch(() => setNotFound(true)).finally(() => setLoading(false));
+      api.public.leaderboard("activity_score", 1, 100),
+    ])
+      .then(([d, r, c, board]) => {
+        setDev(d);
+        setRepos(r ?? []);
+        setContributions(c ?? []);
+        const idx = board.findIndex((x) => x.github_username === username);
+        setRank(idx >= 0 ? idx + 1 : undefined);
+      })
+      .catch(() => setNotFound(true))
+      .finally(() => setLoading(false));
   }, [username]);
 
-  if (loading) return (
-    <div className="min-h-screen bg-muted/40">
-      <NavHeader />
-      <div className="flex items-center justify-center py-32 text-muted-foreground">Loading…</div>
-    </div>
-  );
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-5xl space-y-6 px-4 py-8 sm:px-6">
+        <Skeleton className="h-64 rounded-2xl" />
+        <Skeleton className="h-32 rounded-2xl" />
+        <Skeleton className="h-48 rounded-2xl" />
+      </div>
+    );
+  }
 
-  if (notFound || !dev) return (
-    <div className="min-h-screen bg-muted/40">
-      <NavHeader />
-      <div className="flex items-center justify-center py-32 text-muted-foreground">Developer not found.</div>
-    </div>
-  );
+  if (notFound || !dev) {
+    return (
+      <div className="mx-auto max-w-5xl px-4 py-24 text-center sm:px-6">
+        <h1 className="text-xl font-semibold">Developer not found</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          This profile is not tracked yet or the username is incorrect.
+        </p>
+        <Link href="/developers" className="mt-4 inline-block text-sm text-primary hover:underline">
+          Browse developers
+        </Link>
+      </div>
+    );
+  }
 
-  const maxCount = Math.max(...contributions.map((d) => d.count), 1);
+  const originalRepos = repos.filter((r) => !r.is_fork);
+  const topRepos = [...repos].sort((a, b) => b.stars - a.stars).slice(0, 6);
 
   return (
-    <div className="min-h-screen bg-muted/40">
-      <NavHeader />
-      <main className="mx-auto max-w-5xl px-6 py-8 space-y-8">
-        {/* Profile header */}
-        <div className="flex flex-col sm:flex-row gap-6 items-start">
-          {dev.avatar_url ? (
-            <img src={dev.avatar_url} alt={dev.github_username} className="w-24 h-24 rounded-full border shrink-0" />
-          ) : (
-            <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center text-3xl font-bold text-muted-foreground shrink-0">
-              {dev.github_username[0].toUpperCase()}
-            </div>
-          )}
-          <div className="space-y-1">
-            <div className="flex items-center gap-3 flex-wrap">
-              <h2 className="text-2xl font-bold">{dev.display_name ?? dev.github_username}</h2>
-              {dev.verification_status === "email_verified" && <Badge>verified</Badge>}
-            </div>
-            <p className="text-muted-foreground font-mono">@{dev.github_username}</p>
-            {dev.bio && <p className="text-sm max-w-lg">{dev.bio}</p>}
-            <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-              {dev.location && <span>📍 {dev.location}</span>}
-              {dev.company && <span>🏢 {dev.company}</span>}
-              {dev.website && (
-                <a href={dev.website} target="_blank" rel="noopener noreferrer" className="hover:underline">
-                  🔗 {dev.website}
-                </a>
-              )}
-            </div>
-            <a
-              href={`https://github.com/${dev.github_username}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-muted-foreground hover:underline inline-block"
-            >
-              View on GitHub →
-            </a>
-          </div>
-        </div>
+    <div className="mx-auto max-w-5xl space-y-10 px-4 py-8 sm:px-6">
+      <DevCard dev={dev} rank={rank} />
 
-        {/* Stat cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {[
-            { label: "Stars",          value: dev.total_stars },
-            { label: "Repos",          value: dev.public_repos },
-            { label: "Followers",      value: dev.followers },
-            { label: "Activity Score", value: Math.round(dev.activity_score) },
-          ].map(({ label, value }) => (
-            <Card key={label}>
-              <CardHeader className="pb-1">
-                <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
-              </CardHeader>
-              <CardContent><p className="text-2xl font-bold">{value}</p></CardContent>
-            </Card>
-          ))}
+      {contributions.length > 0 && (
+        <div className="bento-card">
+          <ContributionHeatmap days={contributions} />
         </div>
+      )}
 
-        {/* Contribution heatmap */}
-        {contributions.length > 0 && (
-          <section className="space-y-2">
-            <h3 className="font-semibold">Contributions (last year)</h3>
-            <div className="overflow-x-auto pb-2">
-              <div className="flex flex-wrap gap-0.5 min-w-max">
-                {contributions.map((d) => {
-                  const intensity = d.count === 0 ? 0 : Math.ceil((d.count / maxCount) * 4);
-                  const colors = ["bg-muted", "bg-green-200", "bg-green-400", "bg-green-600", "bg-green-800"];
-                  return (
-                    <div
-                      key={d.date}
-                      title={`${d.date}: ${d.count} contributions`}
-                      className={`w-2.5 h-2.5 rounded-sm ${colors[intensity]}`}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {contributions.reduce((s, d) => s + d.count, 0).toLocaleString()} contributions in the last year
+      <section className="space-y-4">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold">Top repositories</h2>
+            <p className="text-sm text-muted-foreground">
+              {originalRepos.length} original · {repos.length - originalRepos.length} forks
             </p>
-          </section>
-        )}
-
-        {/* Repositories */}
-        <section className="space-y-3">
-          <h3 className="font-semibold">Repositories ({repos.length})</h3>
-          <div className="rounded-lg border bg-background overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Repository</TableHead>
-                  <TableHead>Language</TableHead>
-                  <TableHead>Stars</TableHead>
-                  <TableHead>Forks</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {repos.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center text-muted-foreground py-6">No repositories synced yet.</TableCell>
-                  </TableRow>
-                ) : (
-                  repos.slice(0, 20).map((repo) => (
-                    <TableRow key={repo.id}>
-                      <TableCell>
-                        <a href={repo.url} target="_blank" rel="noopener noreferrer" className="font-mono hover:underline font-medium">
-                          {repo.name}
-                        </a>
-                        {repo.is_fork && <Badge variant="secondary" className="ml-2 text-xs">fork</Badge>}
-                        {repo.description && (
-                          <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-xs">{repo.description}</p>
-                        )}
-                      </TableCell>
-                      <TableCell>{repo.language ? <Badge variant="outline">{repo.language}</Badge> : "—"}</TableCell>
-                      <TableCell>{repo.stars}</TableCell>
-                      <TableCell>{repo.forks}</TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
           </div>
-        </section>
-      </main>
+        </div>
+
+        {topRepos.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No repositories synced yet.</p>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {topRepos.map((repo) => (
+              <a
+                key={repo.id}
+                href={repo.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bento-card block transition-colors hover:border-primary/40"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <p className="font-mono text-sm font-medium">{repo.name}</p>
+                  {repo.is_fork ? (
+                    <Badge variant="secondary" className="text-[10px]">
+                      Fork
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-[10px]">
+                      OSS
+                    </Badge>
+                  )}
+                </div>
+                <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                  {repo.description || "No description"}
+                </p>
+                <div className="mt-3 flex gap-3 text-xs text-muted-foreground">
+                  <span>{repo.stars} stars</span>
+                  <span>{repo.forks} forks</span>
+                  {repo.language && <Badge variant="outline">{repo.language}</Badge>}
+                </div>
+              </a>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

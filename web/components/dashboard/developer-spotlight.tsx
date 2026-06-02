@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { ArrowRight, Sparkles } from "lucide-react";
 
 export function DeveloperSpotlight({
   dev,
@@ -17,12 +16,10 @@ export function DeveloperSpotlight({
   loading: boolean;
 }) {
   return (
-    <div className="bento-card relative overflow-hidden">
-      <div className="absolute -right-8 -top-8 size-32 rounded-full bg-primary/10 blur-2xl" />
-      <div className="relative flex items-center gap-2 text-primary">
-        <Sparkles className="size-4" />
-        <span className="text-xs font-semibold uppercase tracking-wider">Developer Spotlight</span>
-      </div>
+    <div className="bento-card">
+      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        Developer Spotlight
+      </p>
 
       {loading ? (
         <div className="mt-4 space-y-3">
@@ -48,15 +45,15 @@ export function DeveloperSpotlight({
             </div>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
-            <Badge variant="secondary">★ {dev.total_stars}</Badge>
+            <Badge variant="secondary">{dev.total_stars} stars</Badge>
             <Badge variant="secondary">{dev.public_repos} repos</Badge>
             <Badge variant="secondary">Score {Math.round(dev.activity_score)}</Badge>
           </div>
           <Link
             href={`/developers/${dev.github_username}`}
-            className={cn(buttonVariants({ variant: "outline" }), "mt-4 w-full gap-1.5")}
+            className={cn(buttonVariants({ variant: "outline" }), "mt-4 w-full")}
           >
-            View Dev Card <ArrowRight className="size-4" />
+            View profile
           </Link>
         </>
       )}
