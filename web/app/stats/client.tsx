@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, Tooltip,
   PieChart, Pie, Cell, Legend,
 } from "recharts";
 import { api, type Overview, type LanguageStat, type Developer } from "@/lib/api";
+import { ChartContainer } from "@/components/charts/chart-container";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const COLORS = ["#3b82f6","#10b981","#f59e0b","#ef4444","#8b5cf6","#06b6d4","#f97316","#ec4899","#14b8a6","#84cc16"];
@@ -76,14 +77,14 @@ export function StatsClient() {
             <CardTitle className="text-base">Top Developers — Activity Score</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={280}>
+            <ChartContainer height={280}>
               <BarChart data={devsChart} layout="vertical" margin={{ left: 16, right: 16 }}>
                 <XAxis type="number" tick={{ fontSize: 11 }} />
                 <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={90} />
                 <Tooltip />
                 <Bar dataKey="score" fill="#3b82f6" radius={[0, 4, 4, 0]} />
               </BarChart>
-            </ResponsiveContainer>
+            </ChartContainer>
           </CardContent>
         </Card>
 
@@ -93,7 +94,7 @@ export function StatsClient() {
             <CardTitle className="text-base">Language Distribution</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={280}>
+            <ChartContainer height={280}>
               <PieChart>
                 <Pie data={langPie} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ name }) => name}>
                   {langPie.map((entry, i) => (
@@ -103,7 +104,7 @@ export function StatsClient() {
                 <Tooltip formatter={(v) => [`${v} repos`, "Repos"]} />
                 <Legend />
               </PieChart>
-            </ResponsiveContainer>
+            </ChartContainer>
           </CardContent>
         </Card>
 
@@ -113,7 +114,7 @@ export function StatsClient() {
             <CardTitle className="text-base">Languages by Code Volume (MB)</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={240}>
+            <ChartContainer height={240}>
               <BarChart data={langBar} margin={{ left: 8, right: 8 }}>
                 <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
@@ -124,7 +125,7 @@ export function StatsClient() {
                   ))}
                 </Bar>
               </BarChart>
-            </ResponsiveContainer>
+            </ChartContainer>
           </CardContent>
         </Card>
       </div>
