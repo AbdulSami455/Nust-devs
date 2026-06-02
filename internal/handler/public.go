@@ -114,6 +114,23 @@ func (h *PublicHandler) GetLanguages(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (h *PublicHandler) GetCommunityActivity(w http.ResponseWriter, r *http.Request) {
+	days, _ := strconv.Atoi(r.URL.Query().Get("days"))
+	if days < 1 {
+		days = 30
+	}
+	key := fmt.Sprintf("stats:community-activity:%d", days)
+	h.cachedJSON(w, r, key, 10*time.Minute, func() (any, error) {
+		return h.stats.GetCommunityActivity(r.Context(), days)
+	})
+}
+
+func (h *PublicHandler) GetSpotlight(w http.ResponseWriter, r *http.Request) {
+	h.cachedJSON(w, r, "developers:spotlight", 5*time.Minute, func() (any, error) {
+		return h.stats.GetSpotlightDeveloper(r.Context())
+	})
+}
+
 func pagination(r *http.Request) (page, limit int) {
 	page, _ = strconv.Atoi(r.URL.Query().Get("page"))
 	limit, _ = strconv.Atoi(r.URL.Query().Get("limit"))

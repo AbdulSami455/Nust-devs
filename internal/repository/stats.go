@@ -198,3 +198,41 @@ func (r *StatsRepo) GetLanguageStats(ctx context.Context) ([]models.LanguageStat
 	}
 	return stats, nil
 }
+
+func (r *StatsRepo) GetCommunityActivity(ctx context.Context, days int) ([]models.CommunityActivityDay, error) {
+	if days < 1 || days > 365 {
+		days = 30
+	}
+	rows, err := r.db.Query(ctx, `
+		SELECT date::text, COALESCE(SUM(count), 0)::int
+		FROM contribution_days
+		WHERE date >= CURRENT_DATE - ($1::int * INTERVAL '1 day')
+		GROUP BY date
+		ORDER BY date ASC`, days)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []models.CommunityActivityDay
+	for rows.Next() {
+		var d models.CommunityActivityDay
+		if err := rows.Scan(&d.Date, &d.Count); err != nil {
+			return nil, err
+		}
+		out = append(out, d)
+	}
+	return out, nil
+}
+
+func (r *StatsRepo) GetSpotlightDeveloper(ctx context.Context) (*models.Developer, error) {
+	var d models.Developer
+	err := scanPublicDeveloper(r.db.QueryRow(ctx, fmt.Sprintf(`
+		SELECT %s FROM developers
+		WHERE last_synced_at IS NOT NULL
+		ORDER BY activity_score DESC
+		LIMIT 1`, developerCols)), &d)
+	if err != nil {
+		return nil, err
+	}
+	return &d, nil
+}

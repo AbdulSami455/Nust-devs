@@ -73,3 +73,8 @@ type ContributionDay struct {
 	Date  string `json:"date"`
 	Count int    `json:"count"`
 }
+
+type CommunityActivityDay struct {
+	Date  string `json:"date"`
+	Count int    `json:"count"`
+}
