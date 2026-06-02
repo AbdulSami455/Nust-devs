@@ -70,6 +70,7 @@ func main() {
 	mux.HandleFunc("GET /api/v1/stats/languages", pubH.GetLanguages)
 	mux.HandleFunc("GET /api/v1/stats/community-activity", pubH.GetCommunityActivity)
 	mux.HandleFunc("GET /api/v1/stats/open-source", pubH.GetOSSStats)
+	mux.HandleFunc("GET /api/v1/stats/innovation-graph", pubH.GetInnovationGraph)
 
 	// Admin auth (public)
 	mux.HandleFunc("POST /api/v1/admin/auth/login", authH.Login)

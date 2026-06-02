@@ -27,6 +27,20 @@ type Repo struct {
 	ForksCount      int       `json:"forks_count"`
 	Fork            bool      `json:"fork"`
 	PushedAt        time.Time `json:"pushed_at"`
+	License         *struct {
+		SPDXID string `json:"spdx_id"`
+		Name   string `json:"name"`
+	} `json:"license"`
+}
+
+func (r Repo) LicenseName() string {
+	if r.License == nil {
+		return ""
+	}
+	if r.License.SPDXID != "" {
+		return r.License.SPDXID
+	}
+	return r.License.Name
 }
 
 type ContributionDay struct {
