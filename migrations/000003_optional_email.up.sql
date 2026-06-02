@@ -1,0 +1,1 @@
+ALTER TABLE developers ALTER COLUMN email DROP NOT NULL;

@@ -23,10 +23,14 @@ func (h *DeveloperHandler) Create(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-	if in.GithubUsername == "" || in.Email == "" {
-		writeError(w, http.StatusBadRequest, "github_username and email are required")
+	if strings.TrimSpace(in.GithubUsername) == "" {
+		writeError(w, http.StatusBadRequest, "github_username is required")
 		return
 	}
+	in.GithubUsername = strings.TrimSpace(in.GithubUsername)
+	in.Email = optionalString(in.Email)
+	in.DisplayName = optionalString(in.DisplayName)
+	in.Notes = optionalString(in.Notes)
 
 	dev, err := h.devs.Create(r.Context(), in)
 	if err != nil {
@@ -78,4 +82,15 @@ func (h *DeveloperHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func optionalString(s *string) *string {
+	if s == nil {
+		return nil
+	}
+	t := strings.TrimSpace(*s)
+	if t == "" {
+		return nil
+	}
+	return &t
 }

@@ -77,10 +77,10 @@ export default function DashboardPage() {
     setSubmitting(true);
     try {
       await api.developers.create({
-        github_username: form.github_username,
-        ...(form.email ? { email: form.email } : {}),
-        display_name: form.display_name || undefined,
-        notes: form.notes || undefined,
+        github_username: form.github_username.trim(),
+        ...(form.email.trim() ? { email: form.email.trim() } : {}),
+        ...(form.display_name.trim() ? { display_name: form.display_name.trim() } : {}),
+        ...(form.notes.trim() ? { notes: form.notes.trim() } : {}),
       });
       toast.success("Developer added");
       setOpen(false);

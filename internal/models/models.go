@@ -5,7 +5,7 @@ import "time"
 type Developer struct {
 	ID                 string     `json:"id"`
 	GithubUsername     string     `json:"github_username"`
-	Email              string     `json:"email"`
+	Email              *string    `json:"email,omitempty"`
 	DisplayName        *string    `json:"display_name,omitempty"`
 	Notes              *string    `json:"notes,omitempty"`
 	AvatarURL          *string    `json:"avatar_url,omitempty"`
@@ -33,7 +33,7 @@ type AdminUser struct {
 
 type CreateDeveloperInput struct {
 	GithubUsername string  `json:"github_username"`
-	Email          string  `json:"email"`
+	Email          *string `json:"email,omitempty"`
 	DisplayName    *string `json:"display_name,omitempty"`
 	Notes          *string `json:"notes,omitempty"`
 }
