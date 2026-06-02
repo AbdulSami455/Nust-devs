@@ -66,6 +66,11 @@ export interface Overview {
   total_contributions: number;
 }
 
+export interface CommunityActivityDay {
+  date: string;
+  count: number;
+}
+
 export interface LanguageStat {
   language: string;
   bytes: number;
@@ -120,6 +125,9 @@ export const api = {
     topProjects: () => request<PublicRepo[]>("/api/v1/projects/top"),
     overview: () => request<Overview>("/api/v1/stats/overview"),
     languages: () => request<LanguageStat[]>("/api/v1/stats/languages"),
+    communityActivity: (days = 30) =>
+      request<CommunityActivityDay[]>(`/api/v1/stats/community-activity?days=${days}`),
+    spotlight: () => request<Developer>("/api/v1/developers/spotlight"),
   },
 
   // Keep old shape for backward compat with dashboard page
