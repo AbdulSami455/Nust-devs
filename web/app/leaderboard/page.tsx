@@ -24,16 +24,7 @@ export default function LeaderboardPage() {
   }, [sortBy]);
 
   return (
-    <div className="min-h-screen bg-muted/40">
-      <header className="border-b bg-background px-6 py-4 flex items-center justify-between">
-        <Link href="/" className="text-xl font-bold">NUST Devs</Link>
-        <nav className="flex gap-4 text-sm">
-          <Link href="/developers" className="hover:underline">Developers</Link>
-          <Link href="/leaderboard" className="hover:underline font-medium">Leaderboard</Link>
-        </nav>
-      </header>
-
-      <main className="mx-auto max-w-5xl px-6 py-8 space-y-6">
+    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold">Leaderboard</h2>
           <div className="flex gap-2">
@@ -107,7 +98,6 @@ export default function LeaderboardPage() {
             </TableBody>
           </Table>
         </div>
-      </main>
     </div>
   );
 }

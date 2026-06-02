@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { NavHeader } from "@/components/nav-header";
 import { StatsClient } from "./client";
 
 export const metadata: Metadata = {
@@ -8,10 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function StatsPage() {
-  return (
-    <div className="min-h-screen bg-muted/40">
-      <NavHeader />
-      <StatsClient />
-    </div>
-  );
+  return <StatsClient />;
 }

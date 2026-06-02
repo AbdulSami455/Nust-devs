@@ -2,113 +2,126 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { api, type Developer, type Overview, type PublicRepo } from "@/lib/api";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowRight, Code2 } from "lucide-react";
+import { api, type Developer, type Overview, type PublicRepo, type CommunityActivityDay } from "@/lib/api";
+import { BentoStats } from "@/components/dashboard/bento-stats";
+import { ActivityChart } from "@/components/dashboard/activity-chart";
+import { DeveloperSpotlight } from "@/components/dashboard/developer-spotlight";
+import { DevCardMini } from "@/components/dashboard/dev-card-mini";
+import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
 export default function HomePage() {
   const [overview, setOverview] = useState<Overview | null>(null);
+  const [activity, setActivity] = useState<CommunityActivityDay[]>([]);
+  const [spotlight, setSpotlight] = useState<Developer | null>(null);
   const [topDevs, setTopDevs] = useState<Developer[]>([]);
   const [topProjects, setTopProjects] = useState<PublicRepo[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.public.overview().then(setOverview).catch(() => {});
-    api.public.developers.list(1, 6).then(setTopDevs).catch(() => {});
-    api.public.topProjects().then((p) => setTopProjects(p.slice(0, 6))).catch(() => {});
+    Promise.all([
+      api.public.overview().then(setOverview).catch(() => {}),
+      api.public.communityActivity(30).then(setActivity).catch(() => {}),
+      api.public.spotlight().then(setSpotlight).catch(() => {}),
+      api.public.leaderboard("activity_score", 1, 6).then(setTopDevs).catch(() => {}),
+      api.public.topProjects().then((p) => setTopProjects(p.slice(0, 5))).catch(() => {}),
+    ]).finally(() => setLoading(false));
   }, []);
 
   return (
-    <div className="min-h-screen bg-muted/40">
-      <header className="border-b bg-background px-6 py-4 flex items-center justify-between">
-        <h1 className="text-xl font-bold">NUST Devs</h1>
-        <nav className="flex gap-4 text-sm">
-          <Link href="/developers" className="hover:underline">Developers</Link>
-          <Link href="/leaderboard" className="hover:underline">Leaderboard</Link>
-          <Link href="/admin" className="hover:underline text-muted-foreground">Admin</Link>
-        </nav>
-      </header>
-
-      <main className="mx-auto max-w-6xl px-6 py-10 space-y-10">
-        <div className="space-y-1">
-          <h2 className="text-3xl font-bold">NUST Developer Activity</h2>
-          <p className="text-muted-foreground">Track contributions, repos, and stats from NUST developers on GitHub.</p>
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
+      {/* Hero */}
+      <section className="mb-10 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+        <div className="space-y-3">
+          <Badge variant="secondary" className="gap-1">
+            <Code2 className="size-3" /> NUST × GitHub
+          </Badge>
+          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
+            NUST Devs on <span className="text-gradient-gold">GitHub</span>
+          </h1>
+          <p className="max-w-xl text-muted-foreground">
+            Track contributions, repositories, and top projects from NUST developers — community stats, leaderboards, and dev profiles in one place.
+          </p>
         </div>
-
-        {/* Overview stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {[
-            { label: "Developers", value: overview?.total_developers ?? "—" },
-            { label: "Repositories", value: overview?.total_repos ?? "—" },
-            { label: "Total Stars", value: overview?.total_stars ?? "—" },
-            { label: "Contributions", value: overview?.total_contributions?.toLocaleString() ?? "—" },
-          ].map(({ label, value }) => (
-            <Card key={label}>
-              <CardHeader className="pb-1">
-                <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold">{value}</p>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="flex gap-2">
+          <Link href="/developers" className={cn(buttonVariants(), "gap-1.5")}>
+            Explore Developers <ArrowRight className="size-4" />
+          </Link>
+          <Link href="/leaderboard" className={buttonVariants({ variant: "outline" })}>
+            Leaderboard
+          </Link>
         </div>
+      </section>
 
-        {/* Top developers */}
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">Top Developers</h3>
-            <Link href="/developers" className="text-sm text-muted-foreground hover:underline">View all →</Link>
+      {/* Bento grid */}
+      <section className="mb-10 space-y-4">
+        <BentoStats overview={overview} loading={loading} />
+      </section>
+
+      <section className="mb-10 grid gap-4 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <ActivityChart data={activity} loading={loading} />
+        </div>
+        <DeveloperSpotlight dev={spotlight} loading={loading} />
+      </section>
+
+      {/* Top developers */}
+      <section className="mb-10 space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold">Top Developers</h2>
+          <Link href="/developers" className="text-sm text-primary hover:underline">
+            View all →
+          </Link>
+        </div>
+        {loading ? (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-28 rounded-2xl" />
+            ))}
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {topDevs.map((dev) => (
-              <Link key={dev.id} href={`/developers/${dev.github_username}`}>
-                <Card className="hover:border-foreground/30 transition-colors cursor-pointer h-full">
-                  <CardContent className="pt-4 flex gap-3 items-start">
-                    {dev.avatar_url && (
-                      <img src={dev.avatar_url} alt={dev.github_username} className="w-10 h-10 rounded-full" />
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium truncate">{dev.display_name ?? dev.github_username}</p>
-                      <p className="text-sm text-muted-foreground font-mono truncate">@{dev.github_username}</p>
-                      <div className="flex gap-3 mt-2 text-xs text-muted-foreground">
-                        <span>★ {dev.total_stars}</span>
-                        <span>{dev.public_repos} repos</span>
-                        <span>{dev.followers} followers</span>
-                      </div>
-                    </div>
-                    {dev.verification_status === "email_verified" && (
-                      <Badge variant="default" className="shrink-0 text-xs">verified</Badge>
-                    )}
-                  </CardContent>
-                </Card>
-              </Link>
+              <DevCardMini key={dev.id} dev={dev} />
             ))}
           </div>
-        </section>
+        )}
+      </section>
 
-        {/* Top projects */}
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">Top Projects</h3>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {topProjects.map((repo) => (
-              <a key={repo.id} href={repo.url} target="_blank" rel="noopener noreferrer">
-                <Card className="hover:border-foreground/30 transition-colors cursor-pointer h-full">
-                  <CardContent className="pt-4 space-y-1">
-                    <p className="font-mono font-medium text-sm truncate">{repo.full_name}</p>
-                    <p className="text-xs text-muted-foreground line-clamp-2">{repo.description || "No description"}</p>
-                    <div className="flex gap-3 pt-1 text-xs text-muted-foreground">
-                      <span>★ {repo.stars}</span>
-                      {repo.language && <Badge variant="secondary" className="text-xs">{repo.language}</Badge>}
-                    </div>
-                  </CardContent>
-                </Card>
-              </a>
-            ))}
-          </div>
-        </section>
-      </main>
+      {/* Top projects */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold">Top Projects</h2>
+          <Link href="/projects" className="text-sm text-primary hover:underline">
+            View all →
+          </Link>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {loading
+            ? Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-2xl" />)
+            : topProjects.map((repo) => (
+                <a
+                  key={repo.id}
+                  href={repo.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bento-card block transition-colors hover:border-primary/40"
+                >
+                  <p className="truncate font-mono text-sm font-medium">{repo.full_name}</p>
+                  <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                    {repo.description || "No description"}
+                  </p>
+                  <div className="mt-3 flex gap-2 text-xs text-muted-foreground">
+                    <span>★ {repo.stars}</span>
+                    {repo.language && <Badge variant="secondary" className="text-[10px]">{repo.language}</Badge>}
+                  </div>
+                </a>
+              ))}
+        </div>
+      </section>
     </div>
   );
 }
