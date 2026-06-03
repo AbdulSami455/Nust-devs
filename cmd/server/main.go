@@ -38,6 +38,7 @@ func main() {
 	defer pool.Close()
 
 	redisCach := cache.New(cfg.RedisAddr())
+	requestRepo := repository.NewRequestRepo(pool)
 	adminRepo := repository.NewAdminRepo(pool)
 	devRepo := repository.NewDeveloperRepo(pool)
 	statsRepo := repository.NewStatsRepo(pool)
@@ -51,6 +52,7 @@ func main() {
 	devH := handler.NewDeveloperHandler(devRepo)
 	syncH := handler.NewSyncHandler(devRepo, asynqClient, ghClient)
 	pubH := handler.NewPublicHandler(statsRepo, redisCach)
+	reqH := handler.NewProfileRequestHandler(requestRepo, devRepo, asynqClient)
 
 	mux := http.NewServeMux()
 
@@ -72,6 +74,9 @@ func main() {
 	mux.HandleFunc("GET /api/v1/stats/open-source", pubH.GetOSSStats)
 	mux.HandleFunc("GET /api/v1/stats/innovation-graph", pubH.GetInnovationGraph)
 
+	mux.HandleFunc("POST /api/v1/profile-requests", reqH.Submit)
+	mux.HandleFunc("GET /api/v1/profile-requests/check", reqH.CheckUsername)
+
 	// Admin auth (public)
 	mux.HandleFunc("POST /api/v1/admin/auth/login", authH.Login)
 
@@ -83,12 +88,17 @@ func main() {
 	protected.HandleFunc("DELETE /api/v1/admin/developers/{id}", devH.Delete)
 	protected.HandleFunc("POST /api/v1/admin/sync", syncH.TriggerSync)
 	protected.HandleFunc("GET /api/v1/admin/sync/status", syncH.SyncStatus)
+	protected.HandleFunc("GET /api/v1/admin/profile-requests", reqH.List)
+	protected.HandleFunc("POST /api/v1/admin/profile-requests/{id}/approve", reqH.Approve)
+	protected.HandleFunc("POST /api/v1/admin/profile-requests/{id}/reject", reqH.Reject)
 
 	auth := middleware.Auth(cfg.JWTSecret)
 	mux.Handle("/api/v1/admin/developers", auth(protected))
 	mux.Handle("/api/v1/admin/developers/", auth(protected))
 	mux.Handle("/api/v1/admin/sync", auth(protected))
 	mux.Handle("/api/v1/admin/sync/", auth(protected))
+	mux.Handle("/api/v1/admin/profile-requests", auth(protected))
+	mux.Handle("/api/v1/admin/profile-requests/", auth(protected))
 
 	slog.Info("server starting", "port", cfg.Port)
 	if err := http.ListenAndServe(":"+cfg.Port, middleware.CORS(mux)); err != nil {

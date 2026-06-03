@@ -2,9 +2,11 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 
+	"github.com/abdulsami/nust-devs/internal/githubutil"
 	"github.com/abdulsami/nust-devs/internal/models"
 	"github.com/abdulsami/nust-devs/internal/repository"
 )
@@ -27,15 +29,20 @@ func (h *DeveloperHandler) Create(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "github_username is required")
 		return
 	}
-	in.GithubUsername = strings.TrimSpace(in.GithubUsername)
+	username, err := githubutil.NormalizeUsername(in.GithubUsername)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid github username")
+		return
+	}
+	in.GithubUsername = username
 	in.Email = optionalString(in.Email)
 	in.DisplayName = optionalString(in.DisplayName)
 	in.Notes = optionalString(in.Notes)
 
 	dev, err := h.devs.Create(r.Context(), in)
 	if err != nil {
-		if strings.Contains(err.Error(), "unique") {
-			writeError(w, http.StatusConflict, "developer already exists")
+		if errors.Is(err, repository.ErrDeveloperDuplicate) {
+			writeError(w, http.StatusConflict, "this github profile is already registered")
 			return
 		}
 		writeError(w, http.StatusInternalServerError, "could not create developer")
