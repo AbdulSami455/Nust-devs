@@ -44,6 +44,29 @@ type UpdateDeveloperInput struct {
 	Notes       *string `json:"notes,omitempty"`
 }
 
+type DeveloperRequest struct {
+	ID             string     `json:"id"`
+	GithubUsername string     `json:"github_username"`
+	Email          *string    `json:"email,omitempty"`
+	DisplayName    *string    `json:"display_name,omitempty"`
+	Message        *string    `json:"message,omitempty"`
+	Status         string     `json:"status"`
+	AdminNotes     *string    `json:"admin_notes,omitempty"`
+	ReviewedAt     *time.Time `json:"reviewed_at,omitempty"`
+	CreatedAt      time.Time  `json:"created_at"`
+}
+
+type SubmitProfileRequestInput struct {
+	GithubUsername string  `json:"github_username"`
+	Email          *string `json:"email,omitempty"`
+	DisplayName    *string `json:"display_name,omitempty"`
+	Message        *string `json:"message,omitempty"`
+}
+
+type ReviewProfileRequestInput struct {
+	AdminNotes *string `json:"admin_notes,omitempty"`
+}
+
 type Overview struct {
 	TotalDevelopers    int   `json:"total_developers"`
 	TotalRepos         int   `json:"total_repos"`

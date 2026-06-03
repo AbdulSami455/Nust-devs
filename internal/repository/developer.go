@@ -2,11 +2,15 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/abdulsami/nust-devs/internal/models"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+var ErrDeveloperDuplicate = errors.New("developer already exists")
 
 type DeveloperRepo struct {
 	db *pgxpool.Pool
@@ -16,9 +20,25 @@ func NewDeveloperRepo(db *pgxpool.Pool) *DeveloperRepo {
 	return &DeveloperRepo{db: db}
 }
 
-func (r *DeveloperRepo) Create(ctx context.Context, in models.CreateDeveloperInput) (*models.Developer, error) {
-	var d models.Developer
+func (r *DeveloperRepo) ExistsByUsername(ctx context.Context, username string) (bool, error) {
+	var exists bool
 	err := r.db.QueryRow(ctx, `
+		SELECT EXISTS(SELECT 1 FROM developers WHERE lower(github_username) = lower($1))`, username).
+		Scan(&exists)
+	return exists, err
+}
+
+func (r *DeveloperRepo) Create(ctx context.Context, in models.CreateDeveloperInput) (*models.Developer, error) {
+	exists, err := r.ExistsByUsername(ctx, in.GithubUsername)
+	if err != nil {
+		return nil, err
+	}
+	if exists {
+		return nil, ErrDeveloperDuplicate
+	}
+
+	var d models.Developer
+	err = r.db.QueryRow(ctx, `
 		INSERT INTO developers (github_username, email, display_name, notes)
 		VALUES ($1, $2, $3, $4)
 		RETURNING id, github_username, email, display_name, notes,
@@ -33,6 +53,10 @@ func (r *DeveloperRepo) Create(ctx context.Context, in models.CreateDeveloperInp
 		&d.ActivityScore, &d.VerificationStatus, &d.LastSyncedAt, &d.CreatedAt, &d.UpdatedAt,
 	)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return nil, ErrDeveloperDuplicate
+		}
 		return nil, fmt.Errorf("create developer: %w", err)
 	}
 	return &d, nil
