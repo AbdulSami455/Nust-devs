@@ -60,8 +60,8 @@ export default function HomePage() {
           <Link href="/developers" className={cn(buttonVariants())}>
             Explore developers
           </Link>
-          <Link href="/projects" className={buttonVariants({ variant: "outline" })}>
-            Open source projects
+          <Link href="/join" className={buttonVariants({ variant: "outline" })}>
+            Join as developer
           </Link>
         </div>
       </section>

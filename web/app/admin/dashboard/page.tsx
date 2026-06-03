@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { api, type Developer } from "@/lib/api";
+import { api, type Developer, type DeveloperRequest } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,6 +38,7 @@ export default function DashboardPage() {
   const [submitting, setSubmitting] = useState(false);
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [pendingRequests, setPendingRequests] = useState<DeveloperRequest[]>([]);
 
   const fetchDevelopers = useCallback(async () => {
     try {
@@ -57,7 +58,30 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchDevelopers();
     api.admin.sync.status().then((s) => setSyncStatus(s as SyncStatus)).catch(() => {});
+    api.admin.profileRequests.list("pending").then(setPendingRequests).catch(() => {});
   }, [fetchDevelopers]);
+
+  async function handleApproveRequest(id: string, username: string) {
+    try {
+      await api.admin.profileRequests.approve(id);
+      toast.success(`Approved @${username}`);
+      setPendingRequests((prev) => prev.filter((r) => r.id !== id));
+      fetchDevelopers();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to approve");
+    }
+  }
+
+  async function handleRejectRequest(id: string, username: string) {
+    if (!confirm(`Reject request for @${username}?`)) return;
+    try {
+      await api.admin.profileRequests.reject(id);
+      toast.success(`Rejected @${username}`);
+      setPendingRequests((prev) => prev.filter((r) => r.id !== id));
+    } catch {
+      toast.error("Failed to reject request");
+    }
+  }
 
   async function handleSyncAll() {
     setSyncing(true);
@@ -87,7 +111,8 @@ export default function DashboardPage() {
       setForm({ github_username: "", email: "", display_name: "", notes: "" });
       fetchDevelopers();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to add developer");
+      const msg = err instanceof Error ? err.message : "Failed to add developer";
+      toast.error(msg.includes("409") || msg.toLowerCase().includes("already") ? "This GitHub profile is already registered" : msg);
     } finally {
       setSubmitting(false);
     }
@@ -163,6 +188,57 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </div>
+
+        {pendingRequests.length > 0 && (
+          <section className="space-y-3">
+            <h2 className="text-lg font-semibold">
+              Pending profile requests{" "}
+              <Badge variant="secondary">{pendingRequests.length}</Badge>
+            </h2>
+            <div className="rounded-lg border bg-background overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>GitHub</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Message</TableHead>
+                    <TableHead>Submitted</TableHead>
+                    <TableHead />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pendingRequests.map((req) => (
+                    <TableRow key={req.id}>
+                      <TableCell className="font-mono font-medium">@{req.github_username}</TableCell>
+                      <TableCell className="text-muted-foreground">{req.email || "—"}</TableCell>
+                      <TableCell>{req.display_name || "—"}</TableCell>
+                      <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">
+                        {req.message || "—"}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {new Date(req.created_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="space-x-2 text-right">
+                        <Button size="sm" onClick={() => handleApproveRequest(req.id, req.github_username)}>
+                          Approve
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-destructive"
+                          onClick={() => handleRejectRequest(req.id, req.github_username)}
+                        >
+                          Reject
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </section>
+        )}
 
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Developers</h2>

@@ -117,6 +117,24 @@ export interface ContributorStat {
   stars: number;
 }
 
+export interface DeveloperRequest {
+  id: string;
+  github_username: string;
+  email?: string;
+  display_name?: string;
+  message?: string;
+  status: "pending" | "approved" | "rejected";
+  admin_notes?: string;
+  reviewed_at?: string;
+  created_at: string;
+}
+
+export interface UsernameCheck {
+  available: boolean;
+  reason?: string;
+  username?: string;
+}
+
 export interface OSSStats {
   original_projects: number;
   fork_projects: number;
@@ -156,6 +174,25 @@ export const api = {
       trigger: (id?: string) =>
         request<unknown>(`/api/v1/admin/sync${id ? `?id=${id}` : ""}`, { method: "POST" }),
       status: () => request<unknown>("/api/v1/admin/sync/status"),
+    },
+    profileRequests: {
+      list: (status?: string) =>
+        request<DeveloperRequest[]>(
+          `/api/v1/admin/profile-requests${status ? `?status=${status}` : ""}`
+        ),
+      approve: (id: string, admin_notes?: string) =>
+        request<{ request: DeveloperRequest; developer: Developer }>(
+          `/api/v1/admin/profile-requests/${id}/approve`,
+          {
+            method: "POST",
+            body: JSON.stringify(admin_notes ? { admin_notes } : {}),
+          }
+        ),
+      reject: (id: string, admin_notes?: string) =>
+        request<DeveloperRequest>(`/api/v1/admin/profile-requests/${id}/reject`, {
+          method: "POST",
+          body: JSON.stringify(admin_notes ? { admin_notes } : {}),
+        }),
     },
   },
 
@@ -197,6 +234,20 @@ export const api = {
     innovationGraph: (granularity = "quarterly", periods = 8) =>
       request<InnovationGraph>(
         `/api/v1/stats/innovation-graph?granularity=${granularity}&periods=${periods}`
+      ),
+    submitProfileRequest: (data: {
+      github_username: string;
+      email?: string;
+      display_name?: string;
+      message?: string;
+    }) =>
+      request<DeveloperRequest>("/api/v1/profile-requests", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    checkProfileUsername: (username: string) =>
+      request<UsernameCheck>(
+        `/api/v1/profile-requests/check?username=${encodeURIComponent(username)}`
       ),
   },
 
