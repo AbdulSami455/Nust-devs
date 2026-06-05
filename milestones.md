@@ -4,7 +4,7 @@
 >
 > **Stack:** Go API + Next.js dashboard · PostgreSQL · Redis · Asynq workers
 >
-> **Discovery model:** Admin registers developers with **GitHub username + email**. No GitHub org verification. Email domain checks and user self-registration come **last** — build sync, stats, and dashboard first.
+> **Discovery model:** Admin can register developers directly (**GitHub username** required; email optional). NUST developers can also **submit a join request** at `/join` for admin approval. Email domain verification (M6) and full self-registration with OAuth (M8) remain deferred.
 
 ---
 
@@ -18,9 +18,10 @@
 | M3 | Sync Worker | Week 3–4 | ✅ Done |
 | M4 | Stats Engine & Public API | Week 4–5 | ✅ Done |
 | M5 | Public Dashboard | Week 5–7 | ✅ Done |
+| M5b | Frontend Revamp & Innovation Graph | Post-M5 | ✅ Done |
 | M7 | Production Hardening | Week 7–8 | 🔄 In progress |
 | M6 | Email Verification (optional) | Week 8+ | ⬜ Low priority |
-| M8 | Future Enhancements | Post-v1 | ⬜ Backlog |
+| M8 | Future Enhancements | Post-v1 | 🔄 Partial (claim flow done) |
 
 **Legend:** ⬜ Not started · 🔄 In progress · ✅ Done
 
@@ -38,13 +39,13 @@
 - [x] Structured logging (slog or zerolog)
 - [x] Health endpoint (`GET /health`)
 - [x] SQL migrations tooling (golang-migrate)
-- [x] GitHub Actions: lint, test, build
+- [ ] GitHub Actions: lint, test, build
 - [x] `.gitignore` and expanded README with setup instructions
 
 ### Exit Criteria
 
 - [x] `GET /health` returns `200 OK`
-- [x] CI pipeline passes on push
+- [ ] CI pipeline passes on push
 
 ### Key Files
 
@@ -52,7 +53,6 @@
 cmd/server/main.go
 cmd/worker/main.go
 .env.example
-.github/workflows/ci.yml
 ```
 
 ---
@@ -60,36 +60,42 @@ cmd/worker/main.go
 ## Milestone 1 — Database & Developer Registry
 
 **Target:** Week 2  
-**Goal:** Persist developers; admin can register them with GitHub username and email.
+**Goal:** Persist developers; admin can register them with GitHub username (email optional).
 
 ### Tasks
 
 - [x] Design and apply initial migration
-  - [x] `developers` (includes `github_username`, `email`, optional `display_name`, `notes`)
+  - [x] `developers` (includes `github_username`, optional `email`, optional `display_name`, `notes`)
   - [x] `repos`
   - [x] `developer_repos`
   - [x] `developer_snapshots`
   - [x] `contribution_days`
   - [x] `sync_jobs`
   - [x] `admin_users`
-- [x] Repository layer (pgx or sqlc)
+  - [x] `developer_requests` (join requests, pending/approved/rejected)
+  - [x] `repos.license` column (SPDX from GitHub sync)
+- [x] Repository layer (pgx)
 - [x] Admin auth (JWT + bcrypt, seed admin user)
 - [x] CRUD endpoints: register / list / update / delete developers
-- [x] Basic Next.js shell with admin login + add-developer form (**username + email**)
+- [x] Duplicate GitHub username prevention (normalized lowercase, case-insensitive check)
+- [x] Basic Next.js shell with admin login + add-developer form
+- [x] Public join request flow (`/join`) with admin approve/reject
 
 ### Exit Criteria
 
 - [x] Admin can log in with seeded credentials
-- [x] Admin can add a developer with **GitHub username and email**
+- [x] Admin can add a developer with **GitHub username** (email optional)
 - [x] Developer persists in DB and appears in admin list
 - [x] Admin can update and delete developers
+- [x] Duplicate usernames are rejected (admin add + join request)
+- [x] Pending join requests appear in admin dashboard; approve creates developer + enqueues sync
 
 ### Register Developer Payload (v1)
 
 | Field | Required | Notes |
 |-------|----------|-------|
-| `github_username` | Yes | Used for GitHub sync |
-| `email` | Yes | Stored now; domain verification deferred to M6 |
+| `github_username` | Yes | Normalized lowercase; used for GitHub sync |
+| `email` | No | Stored if provided; domain verification deferred to M6 |
 | `display_name` | No | Optional override |
 | `notes` | No | Admin-only |
 
@@ -102,6 +108,11 @@ cmd/worker/main.go
 | GET | `/api/v1/admin/developers` | Admin |
 | PATCH | `/api/v1/admin/developers/:id` | Admin |
 | DELETE | `/api/v1/admin/developers/:id` | Admin |
+| POST | `/api/v1/profile-requests` | Public |
+| GET | `/api/v1/profile-requests/check` | Public |
+| GET | `/api/v1/admin/profile-requests` | Admin |
+| POST | `/api/v1/admin/profile-requests/:id/approve` | Admin |
+| POST | `/api/v1/admin/profile-requests/:id/reject` | Admin |
 
 ---
 
@@ -116,6 +127,7 @@ cmd/worker/main.go
   - [x] `GET /users/{username}` — profile
   - [x] `GET /users/{username}/repos` — paginated repos
   - [x] `GET /repos/{owner}/{repo}/languages` — language breakdown
+  - [x] Repo `license` (SPDX) on sync
 - [x] GraphQL client
   - [x] `contributionsCollection` — contribution calendar
 - [x] Central rate-limit manager
@@ -156,12 +168,14 @@ cmd/worker/main.go
   - [x] Full sync nightly
   - [x] Incremental sync every 6h
 - [x] Admin trigger sync endpoint (single developer or all)
-- [x] Admin sync status endpoint (queue depth + rate limit state)
+- [x] Admin sync status endpoint (rate limit state)
 - [x] Idempotent upserts; track `last_synced_at` per developer
+- [x] Redis cache invalidation after successful sync
+- [x] Auto-sync enqueue on approved join request
 
 ### Exit Criteria
 
-- [x] Register 5 developers → worker syncs all automatically
+- [x] Register 5+ developers → worker syncs all automatically
 - [x] DB contains profiles, repos, languages, and contribution data
 - [x] Daily snapshots are written for trend tracking
 - [x] Manual sync trigger works from admin API
@@ -183,9 +197,14 @@ cmd/worker/main.go
 ### Tasks
 
 - [x] Activity score computation service
-- [x] Leaderboard queries (stars, commits, activity score, repos)
-- [x] Top projects aggregation (NUST dev repos ranked)
+- [x] Leaderboard queries (activity score, stars, repos, followers)
+- [x] Top projects aggregation with filters (category, language, sort)
 - [x] Platform overview stats (totals, language breakdown)
+- [x] Community activity time series (`contribution_days` aggregate)
+- [x] Developer spotlight endpoint
+- [x] Live activity feed (recent repo pushes)
+- [x] Open-source stats (original vs fork projects, contributors)
+- [x] Innovation graph API (quarterly/monthly trends: pushes, repos, devs, orgs, languages, licenses)
 - [x] Public API handlers with pagination, sorting, and Redis caching
 - [ ] OpenAPI spec (swaggo or manual)
 
@@ -196,10 +215,10 @@ activity_score =
   (commits_last_90d * 3) +
   (public_repos * 2) +
   (total_stars * 0.1) +
-  (recent_pushes_last_30d * 5)
+  (commits_last_30d * 5)
 ```
 
-Weights configurable in admin settings. Recompute after each sync.
+Recomputed after each sync. (Note: formula uses contribution days, not literal commits.)
 
 ### Exit Criteria
 
@@ -212,13 +231,18 @@ Weights configurable in admin settings. Recompute after each sync.
 | Method | Path | Auth |
 |--------|------|------|
 | GET | `/api/v1/developers` | Public |
+| GET | `/api/v1/developers/spotlight` | Public |
 | GET | `/api/v1/developers/:username` | Public |
 | GET | `/api/v1/developers/:username/repos` | Public |
 | GET | `/api/v1/developers/:username/contributions` | Public |
 | GET | `/api/v1/leaderboard` | Public |
 | GET | `/api/v1/projects/top` | Public |
+| GET | `/api/v1/activity/recent` | Public |
 | GET | `/api/v1/stats/overview` | Public |
 | GET | `/api/v1/stats/languages` | Public |
+| GET | `/api/v1/stats/community-activity` | Public |
+| GET | `/api/v1/stats/open-source` | Public |
+| GET | `/api/v1/stats/innovation-graph` | Public |
 
 ---
 
@@ -229,29 +253,34 @@ Weights configurable in admin settings. Recompute after each sync.
 
 ### Tasks
 
-- [x] Design system (Tailwind + shadcn/ui, dark/light mode)
-- [x] Home page — overview stats, top devs, top projects, language chart
-- [x] Developer list — searchable/filterable grid
-- [x] Developer profile — heatmap, language chart, repo table, stats cards
-- [x] Leaderboard — sortable table with sparklines
-- [x] Projects page — top repos grid/table
-- [x] Stats page — platform-wide charts and trends
-- [x] Responsive layout, loading states, error boundaries
+- [x] Design system (Tailwind + shadcn/ui, dark/light mode, NUST palette)
+- [x] Global Cmd+K command palette
+- [x] Home page — bento stats, community pulse chart, spotlight, top devs/projects, OSS panel, live activity
+- [x] Developer list — searchable grid with mini dev cards
+- [x] Developer profile — dev card, share (copy link / X), contribution heatmap, top repos
+- [x] Leaderboard — podium for top 3, tabs (Top 10/50/All), sort pills
+- [x] Projects page — category filters (All / Original OSS / Forks), language & sort filters
+- [x] Stats page — platform-wide charts
+- [x] Innovation graph page (`/innovation`) — LebHub-style quarterly trends + live activity tab
+- [x] Join page (`/join`) — submit profile request for admin approval
+- [x] Mobile bottom navigation
+- [x] Skeleton loading states (no raw "Loading…" on main dashboards)
 - [x] SEO metadata (Open Graph for developer profiles)
+- [ ] Error boundaries (global)
 
 ### Chart Types
 
-- [ ] Contribution heatmap (GitHub-style calendar)
-- [ ] Language distribution (donut/bar)
-- [ ] Activity over time (line/area from daily snapshots)
+- [x] Contribution heatmap (GitHub-style calendar on profile)
+- [x] Language distribution (donut/bar on stats + innovation graph)
+- [x] Activity over time (area chart — community pulse + innovation graph pushes)
 - [ ] Leaderboard sparklines
-- [ ] Top projects bar chart
-- [ ] Stars/forks growth (from repo snapshots)
+- [x] Top projects bar chart (stats page)
+- [ ] Stars/forks growth (from repo snapshots over time)
 
 ### Exit Criteria
 
 - [x] All pages render live data from the API
-- [x] Charts update after a sync completes
+- [x] Charts update after a sync completes (cache invalidation + refresh)
 - [x] Mobile layout is usable
 - [x] Profile pages have correct Open Graph tags
 
@@ -259,13 +288,30 @@ Weights configurable in admin settings. Recompute after each sync.
 
 | Route | Description |
 |-------|-------------|
-| `/` | Platform overview |
+| `/` | Platform overview (bento dashboard) |
 | `/developers` | Developer directory |
-| `/developers/[username]` | Developer profile |
-| `/leaderboard` | Rankings |
-| `/projects` | Top repositories |
+| `/developers/[username]` | Developer profile + dev card |
+| `/leaderboard` | Rankings with podium |
+| `/projects` | Open-source projects with filters |
 | `/stats` | Platform-wide analytics |
-| `/admin` | Admin panel |
+| `/innovation` | Innovation graph & trends |
+| `/join` | Request to join (admin approval) |
+| `/admin` | Admin login |
+| `/admin/dashboard` | Developer + request management |
+
+---
+
+## Milestone 5b — Frontend Revamp (LebHub-inspired)
+
+**Goal:** Modern community dashboard UX (see `web/REVAMP_PLAN.md`).
+
+| Revamp milestone | Status |
+|------------------|--------|
+| M1 — Theme, Cmd+K, shell | ✅ Done |
+| M2 — Home bento dashboard, community pulse, spotlight | ✅ Done |
+| M3 — Dev profile card, heatmap, share actions | ✅ Done |
+| M4 — Leaderboard podium + tabs | ✅ Done |
+| M5 — Live feed, mobile nav, polish | ✅ Done |
 
 ---
 
@@ -301,7 +347,7 @@ Additional school/department domains can be added via admin settings.
 
 | Status | Meaning |
 |--------|---------|
-| `registered` | Added with username + email; not yet verified |
+| `registered` | Added with username (+ optional email); not yet verified |
 | `email_verified` | Provided email matches an allowed NUST-affiliated domain |
 | `manual_verified` | Admin manually confirmed |
 
@@ -339,25 +385,28 @@ Additional school/department domains can be added via admin settings.
 - [x] API response caching strategy (Redis TTLs per endpoint)
 - [x] Comprehensive README: architecture, API docs, deployment guide
 - [ ] Seed script for demo data
+- [ ] GitHub Actions CI (lint, test, build)
 
 ### Exit Criteria
 
-- [ ] `docker compose up` starts all services without errors
-- [ ] Platform deployable via Docker in a single command
-- [ ] Another developer can run locally using README alone
-- [ ] Leaderboard and stats queries perform well at 50+ developers
-- [ ] Admin can monitor GitHub API quota usage
+- [x] `docker compose up` starts all services (with documented port/env caveats)
+- [ ] Platform deployable to staging/prod with env-specific config
+- [x] Another developer can run locally using README alone
+- [x] Leaderboard and stats queries perform well at 15+ developers (50+ untested at scale)
+- [x] Admin can monitor GitHub API quota usage
 
 ---
 
 ## Milestone 8 — Future Enhancements (Post-v1 Backlog)
 
-**Goal:** Track ideas without blocking v1 launch. **Lowest priority: developers registering themselves.**
+**Goal:** Track ideas without blocking v1 launch.
 
-### Last Priority — User Self-Service
+### Claim / Join Flow (partially done)
 
-- [ ] **Developer self-registration** — user submits their own GitHub username, email, and basic info
-- [ ] **Claim flow** — user requests to be added; admin approves
+- [x] **Join request** — user submits GitHub username at `/join` (optional email, display name, message)
+- [x] **Admin approval flow** — admin approves/rejects; approve creates developer + enqueues sync
+- [x] **Duplicate prevention** — no repeated GitHub profiles (registered or pending)
+- [ ] **Developer self-registration** — instant add without admin (deferred)
 - [ ] **GitHub OAuth login** — developers manage their own profile after claiming
 
 ### Other Backlog
@@ -368,18 +417,23 @@ Additional school/department domains can be added via admin settings.
 - [ ] Compare two developers side-by-side
 - [ ] Monthly "NUST Dev of the Month" automated ranking
 - [ ] Public API rate limiting for third-party consumers
+- [ ] Leaderboard sparklines and rank trend indicators
+- [ ] Stars/forks growth charts from snapshots
+- [ ] Dev card image export (PNG download)
+- [ ] OpenAPI / Swagger documentation
 
 ---
 
 ## v1 Success Metrics
 
-| Metric | Target |
-|--------|--------|
-| Registered & synced developers | 50+ |
-| Public page load time | < 2s |
-| Sync reliability | No 429 errors within rate limits |
-| Live chart types | 6+ |
-| Admin workflow | Add username + email / sync / view stats |
+| Metric | Target | Current |
+|--------|--------|---------|
+| Registered & synced developers | 50+ | 🔄 ~15 synced |
+| Public page load time | < 2s | ✅ |
+| Sync reliability | No 429 errors within rate limits | ✅ (with PAT + worker) |
+| Live chart types | 6+ | ✅ (heatmap, languages, activity, innovation trends, OSS, leaderboard) |
+| Admin workflow | Add username / sync / view stats | ✅ |
+| Join request workflow | Submit → admin approve → sync | ✅ |
 
 ---
 
@@ -390,29 +444,30 @@ Additional school/department domains can be added via admin settings.
 | GitHub rate limits with many developers | Sync stalls | Staggered sync, Redis queue, PAT, aggressive persistence |
 | Events API 90-day limit | Incomplete history | GraphQL contribution calendar + daily snapshots |
 | Private repos invisible | Incomplete stats | Document clearly; only public data |
-| Fake NUST affiliation | Bad data | Email domain allowlist (M6) + admin manual override |
+| Fake NUST affiliation | Bad data | Email domain allowlist (M6) + admin manual override + join review |
 | GitHub API changes | Broken sync | Version-pin API calls; abstract client interface |
-| Large repo lists per user | Slow sync | Paginate; cap repo detail fetch to top N by stars/activity |
+| Large repo lists per user | Slow sync | Paginate; cap language fetch to top 20 repos by stars |
+| Stale API server after deploy | New routes 404 | Restart `cmd/server` after backend changes |
 
 ---
 
 ## Implementation Order
 
-**v1 launch path** — verification and self-registration are explicitly deferred:
+**v1 launch path** — email verification and OAuth self-registration are explicitly deferred:
 
 ```
 M0 Foundation
-  └─► M1 Registry (username + email)
+  └─► M1 Registry (username + optional email + join requests)
         └─► M2 GitHub Client
               └─► M3 Sync Worker
-                    └─► M4 Stats API
-                          └─► M5 Dashboard  ← usable public platform
+                    └─► M4 Stats API (+ innovation / OSS / activity)
+                          └─► M5 Dashboard + M5b Revamp  ← usable public platform
                                 └─► M7 Production  ← v1 launch
                                       └─► M6 Email verification (optional, later)
-                                            └─► M8 Self-registration (last priority)
+                                            └─► M8 OAuth self-registration (last priority)
 ```
 
-Work strictly milestone-by-milestone for M0–M7. M6 and M8 do not block v1 launch.
+Work strictly milestone-by-milestone for M0–M7. M6 and full M8 self-registration do not block v1 launch.
 
 ---
 
@@ -426,10 +481,12 @@ Nust-devs/
 ├── internal/
 │   ├── config/
 │   ├── github/
+│   ├── githubutil/
 │   ├── models/
 │   ├── repository/
 │   ├── service/
 │   ├── handler/
+│   ├── cache/
 │   └── worker/
 ├── migrations/
 ├── web/
@@ -438,10 +495,11 @@ Nust-devs/
 │   └── lib/api.ts
 ├── docker-compose.yml
 ├── milestones.md
+├── web/REVAMP_PLAN.md
 ├── go.mod
 └── README.md
 ```
 
 ---
 
-*Last updated: May 2026*
+*Last updated: June 2026*
