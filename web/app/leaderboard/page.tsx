@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { api, type Developer } from "@/lib/api";
+import { api, type LeaderboardEntry } from "@/lib/api";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { RankDelta, Sparkline } from "@/components/charts/sparkline";
 import { cn } from "@/lib/utils";
 
 const SORT_OPTIONS = [
@@ -20,13 +21,19 @@ const LIMIT_TABS = [
   { value: 100, label: "All" },
 ];
 
+const VIEW_TABS = [
+  { value: "default" as const, label: "Rankings" },
+  { value: "rising" as const, label: "Rising (7d)", period: 7 as const },
+  { value: "rising30" as const, label: "Rising (30d)", period: 30 as const },
+];
+
 const PODIUM = [
   { place: 2, ring: "ring-slate-400/60", bar: "h-20", label: "2nd" },
   { place: 1, ring: "ring-[var(--nust-gold)]/80", bar: "h-28", label: "1st" },
   { place: 3, ring: "ring-amber-700/60", bar: "h-16", label: "3rd" },
 ];
 
-function sortValue(dev: Developer, sortBy: string) {
+function sortValue(dev: LeaderboardEntry, sortBy: string) {
   switch (sortBy) {
     case "total_stars":
       return dev.total_stars;
@@ -39,31 +46,67 @@ function sortValue(dev: Developer, sortBy: string) {
   }
 }
 
+function scoreDelta(dev: LeaderboardEntry, period: 7 | 30) {
+  const d = period === 30 ? dev.score_delta_30d : dev.score_delta_7d;
+  return d ?? null;
+}
+
+function rankDelta(dev: LeaderboardEntry, period: 7 | 30) {
+  const d = period === 30 ? dev.rank_delta_30d : dev.rank_delta_7d;
+  return d ?? null;
+}
+
 export default function LeaderboardPage() {
-  const [developers, setDevelopers] = useState<Developer[]>([]);
+  const [developers, setDevelopers] = useState<LeaderboardEntry[]>([]);
   const [sortBy, setSortBy] = useState("activity_score");
   const [limit, setLimit] = useState(50);
+  const [view, setView] = useState<"default" | "rising" | "rising30">("default");
   const [loading, setLoading] = useState(true);
+
+  const trendPeriod: 7 | 30 = view === "rising30" ? 30 : 7;
+  const isRising = view !== "default";
 
   useEffect(() => {
     setLoading(true);
     api.public
-      .leaderboard(sortBy, 1, limit)
+      .leaderboard(sortBy, 1, limit, {
+        view: isRising ? "rising" : "default",
+        period: trendPeriod,
+      })
       .then(setDevelopers)
       .catch(() => setDevelopers([]))
       .finally(() => setLoading(false));
-  }, [sortBy, limit]);
+  }, [sortBy, limit, view, isRising, trendPeriod]);
 
-  const top3 = developers.slice(0, 3);
-  const rest = developers.slice(3);
+  const showPodium = !isRising;
+  const top3 = showPodium ? developers.slice(0, 3) : [];
+  const tableRows = showPodium && top3.length >= 3 ? developers.slice(3) : developers;
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 px-4 py-8 sm:px-6">
       <div className="space-y-1">
         <h1 className="text-2xl font-bold tracking-tight">Leaderboard</h1>
         <p className="text-sm text-muted-foreground">
-          Rankings among tracked NUST developers on GitHub.
+          Rankings among tracked NUST developers — with rank trends and score momentum.
         </p>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {VIEW_TABS.map((tab) => (
+          <button
+            key={tab.value}
+            type="button"
+            onClick={() => setView(tab.value)}
+            className={cn(
+              "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+              view === tab.value
+                ? "bg-primary text-primary-foreground"
+                : "border bg-background hover:bg-muted"
+            )}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -103,15 +146,23 @@ export default function LeaderboardPage() {
         </div>
       </div>
 
+      {isRising && (
+        <p className="text-sm text-muted-foreground">
+          Developers with the biggest score gains in the last {trendPeriod} days (from daily snapshots).
+        </p>
+      )}
+
       {loading ? (
         <Skeleton className="h-64 rounded-2xl" />
       ) : developers.length === 0 ? (
         <div className="rounded-2xl border border-dashed px-6 py-16 text-center text-muted-foreground">
-          No developers synced yet.
+          {isRising
+            ? "Not enough snapshot history yet — trends appear after a few days of syncs."
+            : "No developers synced yet."}
         </div>
       ) : (
         <>
-          {top3.length >= 3 && (
+          {showPodium && top3.length >= 3 && (
             <div className="bento-card">
               <p className="mb-6 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Podium
@@ -139,11 +190,11 @@ export default function LeaderboardPage() {
                       <p className="mt-1 text-sm font-bold tabular-nums">
                         {sortValue(dev, sortBy).toLocaleString()}
                       </p>
+                      <div className="mt-1">
+                        <RankDelta delta={rankDelta(dev, 7)} period={7} />
+                      </div>
                       <div
-                        className={cn(
-                          "mt-3 w-full rounded-t-lg bg-primary/15",
-                          bar
-                        )}
+                        className={cn("mt-3 w-full rounded-t-lg bg-primary/15", bar)}
                       />
                     </Link>
                   );
@@ -158,14 +209,21 @@ export default function LeaderboardPage() {
                 <tr className="border-b bg-muted/40 text-left text-muted-foreground">
                   <th className="px-4 py-3 font-medium">Rank</th>
                   <th className="px-4 py-3 font-medium">Developer</th>
+                  <th className="hidden px-4 py-3 font-medium sm:table-cell">Trend</th>
+                  {isRising ? (
+                    <th className="px-4 py-3 font-medium">Gain</th>
+                  ) : (
+                    <th className="hidden px-4 py-3 font-medium md:table-cell">Δ Rank</th>
+                  )}
                   <th className="hidden px-4 py-3 font-medium sm:table-cell">Score</th>
                   <th className="hidden px-4 py-3 font-medium md:table-cell">Stars</th>
                   <th className="hidden px-4 py-3 font-medium lg:table-cell">Repos</th>
                 </tr>
               </thead>
               <tbody>
-                {(top3.length < 3 ? developers : rest).map((dev, i) => {
-                  const rank = top3.length < 3 ? i + 1 : i + 4;
+                {tableRows.map((dev, i) => {
+                  const rank = dev.rank ?? (showPodium && top3.length >= 3 ? i + 4 : i + 1);
+                  const delta = scoreDelta(dev, trendPeriod);
                   return (
                     <tr key={dev.id} className="border-b last:border-0 hover:bg-muted/30">
                       <td className="px-4 py-3 font-mono text-muted-foreground">#{rank}</td>
@@ -192,6 +250,39 @@ export default function LeaderboardPage() {
                           </div>
                         </Link>
                       </td>
+                      <td className="hidden px-4 py-3 sm:table-cell">
+                        <Sparkline
+                          data={dev.sparkline ?? []}
+                          positive={
+                            delta != null ? delta >= 0 : undefined
+                          }
+                        />
+                      </td>
+                      {isRising ? (
+                        <td className="px-4 py-3">
+                          {delta != null ? (
+                            <span
+                              className={cn(
+                                "font-medium tabular-nums",
+                                delta > 0
+                                  ? "text-emerald-600 dark:text-emerald-400"
+                                  : delta < 0
+                                    ? "text-rose-600 dark:text-rose-400"
+                                    : "text-muted-foreground"
+                              )}
+                            >
+                              {delta > 0 ? "+" : ""}
+                              {Number.isInteger(delta) ? delta : delta.toFixed(1)}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </td>
+                      ) : (
+                        <td className="hidden px-4 py-3 md:table-cell">
+                          <RankDelta delta={rankDelta(dev, 7)} period={7} />
+                        </td>
+                      )}
                       <td className="hidden px-4 py-3 tabular-nums sm:table-cell">
                         {Math.round(dev.activity_score)}
                       </td>

@@ -42,6 +42,20 @@ export interface Developer {
   created_at: string;
 }
 
+export interface SparkPoint {
+  date: string;
+  value: number;
+}
+
+export interface LeaderboardEntry extends Developer {
+  rank: number;
+  rank_delta_7d?: number | null;
+  rank_delta_30d?: number | null;
+  score_delta_7d?: number | null;
+  score_delta_30d?: number | null;
+  sparkline?: SparkPoint[];
+}
+
 export interface PublicRepo {
   id: string;
   name: string;
@@ -207,8 +221,23 @@ export const api = {
       contributions: (username: string) =>
         request<ContributionDay[]>(`/api/v1/developers/${username}/contributions`),
     },
-    leaderboard: (sortBy = "activity_score", page = 1, limit = 20) =>
-      request<Developer[]>(`/api/v1/leaderboard?sort_by=${sortBy}&page=${page}&limit=${limit}`),
+    leaderboard: (
+      sortBy = "activity_score",
+      page = 1,
+      limit = 20,
+      opts?: { view?: "default" | "rising"; period?: 7 | 30 }
+    ) => {
+      const params = new URLSearchParams({
+        sort_by: sortBy,
+        page: String(page),
+        limit: String(limit),
+      });
+      if (opts?.view === "rising") {
+        params.set("view", "rising");
+        params.set("period", String(opts.period ?? 7));
+      }
+      return request<LeaderboardEntry[]>(`/api/v1/leaderboard?${params}`);
+    },
     topProjects: (opts?: {
       category?: ProjectCategory;
       language?: string;
