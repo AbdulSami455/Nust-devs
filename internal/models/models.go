@@ -139,6 +139,21 @@ type ContributorStat struct {
 	Stars    int     `json:"stars"`
 }
 
+type SparkPoint struct {
+	Date  string  `json:"date"`
+	Value float64 `json:"value"`
+}
+
+type LeaderboardEntry struct {
+	Developer
+	Rank          int          `json:"rank"`
+	RankDelta7d   *int         `json:"rank_delta_7d,omitempty"`
+	RankDelta30d  *int         `json:"rank_delta_30d,omitempty"`
+	ScoreDelta7d  *float64     `json:"score_delta_7d,omitempty"`
+	ScoreDelta30d *float64     `json:"score_delta_30d,omitempty"`
+	Sparkline     []SparkPoint `json:"sparkline,omitempty"`
+}
+
 type InnovationGraph struct {
 	Granularity      string            `json:"granularity"`
 	Pushes           []TrendPoint      `json:"pushes"`

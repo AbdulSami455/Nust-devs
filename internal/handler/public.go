@@ -89,10 +89,19 @@ func (h *PublicHandler) GetDeveloperContributions(w http.ResponseWriter, r *http
 
 func (h *PublicHandler) GetLeaderboard(w http.ResponseWriter, r *http.Request) {
 	sortBy := r.URL.Query().Get("sort_by")
+	view := r.URL.Query().Get("view")
+	period, _ := strconv.Atoi(r.URL.Query().Get("period"))
 	page, limit := pagination(r)
-	key := fmt.Sprintf("leaderboard:%s:%d:%d", sortBy, page, limit)
+	key := fmt.Sprintf("leaderboard:%s:%s:%d:%d:%d", sortBy, view, period, page, limit)
 	h.cachedJSON(w, r, key, 5*time.Minute, func() (any, error) {
-		return h.stats.GetLeaderboard(r.Context(), sortBy, page, limit)
+		entries, err := h.stats.GetLeaderboardWithTrends(r.Context(), sortBy, view, period, page, limit)
+		if err != nil {
+			return nil, err
+		}
+		if entries == nil {
+			return []struct{}{}, nil
+		}
+		return entries, nil
 	})
 }
 
