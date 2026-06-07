@@ -115,12 +115,44 @@ func (h *PublicHandler) GetTopProjects(w http.ResponseWriter, r *http.Request) {
 	}
 	key := fmt.Sprintf("projects:list:%s:%s:%s:%d", category, language, sortBy, limit)
 	h.cachedJSON(w, r, key, 10*time.Minute, func() (any, error) {
-		return h.stats.ListProjects(r.Context(), repository.ProjectFilter{
+		repos, err := h.stats.ListProjects(r.Context(), repository.ProjectFilter{
 			Category: category,
 			Language: language,
 			Sort:     sortBy,
 			Limit:    limit,
 		})
+		if err != nil {
+			return nil, err
+		}
+		if repos == nil {
+			return []struct{}{}, nil
+		}
+		return repos, nil
+	})
+}
+
+func (h *PublicHandler) GetFastestGrowingProjects(w http.ResponseWriter, r *http.Request) {
+	days, _ := strconv.Atoi(r.URL.Query().Get("days"))
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	key := fmt.Sprintf("projects:fastest-growing:%d:%d", days, limit)
+	h.cachedJSON(w, r, key, 10*time.Minute, func() (any, error) {
+		repos, err := h.stats.GetFastestGrowingRepos(r.Context(), days, limit)
+		if err != nil {
+			return nil, err
+		}
+		if repos == nil {
+			return []struct{}{}, nil
+		}
+		return repos, nil
+	})
+}
+
+func (h *PublicHandler) GetRepoGrowth(w http.ResponseWriter, r *http.Request) {
+	repoID := r.PathValue("id")
+	days, _ := strconv.Atoi(r.URL.Query().Get("days"))
+	key := fmt.Sprintf("repos:growth:%s:%d", repoID, days)
+	h.cachedJSON(w, r, key, 15*time.Minute, func() (any, error) {
+		return h.stats.GetRepoGrowth(r.Context(), repoID, days)
 	})
 }
 

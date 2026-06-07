@@ -97,13 +97,15 @@ func (r *DeveloperRepo) GetByID(ctx context.Context, id string) (*models.Develop
 		SELECT id, github_username, email, display_name, notes,
 		       avatar_url, bio, location, company, website,
 		       followers, following, public_repos, total_stars,
-		       activity_score, verification_status, last_synced_at, created_at, updated_at
+		       activity_score, builder_score, contributor_score, reviewer_score, community_score,
+		       verification_status, last_synced_at, created_at, updated_at
 		FROM developers WHERE id = $1`, id,
 	).Scan(
 		&d.ID, &d.GithubUsername, &d.Email, &d.DisplayName, &d.Notes,
 		&d.AvatarURL, &d.Bio, &d.Location, &d.Company, &d.Website,
 		&d.Followers, &d.Following, &d.PublicRepos, &d.TotalStars,
-		&d.ActivityScore, &d.VerificationStatus, &d.LastSyncedAt, &d.CreatedAt, &d.UpdatedAt,
+		&d.ActivityScore, &d.BuilderScore, &d.ContributorScore, &d.ReviewerScore, &d.CommunityScore,
+		&d.VerificationStatus, &d.LastSyncedAt, &d.CreatedAt, &d.UpdatedAt,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("get developer: %w", err)
