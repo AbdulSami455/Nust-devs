@@ -100,6 +100,7 @@ func (r *DeveloperRepo) GetByID(ctx context.Context, id string) (*models.Develop
 		       activity_score, builder_score, contributor_score, reviewer_score, community_score,
 		       pr_contributions, issue_contributions, review_contributions,
 		       contribution_period_start::text, contribution_period_end::text,
+		       current_streak, longest_streak, streak_multiplier, xp, power_level,
 		       verification_status, last_synced_at, created_at, updated_at
 		FROM developers WHERE id = $1`, id,
 	).Scan(
@@ -109,6 +110,7 @@ func (r *DeveloperRepo) GetByID(ctx context.Context, id string) (*models.Develop
 		&d.ActivityScore, &d.BuilderScore, &d.ContributorScore, &d.ReviewerScore, &d.CommunityScore,
 		&d.PRContributions, &d.IssueContributions, &d.ReviewContributions,
 		&d.ContributionPeriodStart, &d.ContributionPeriodEnd,
+		&d.CurrentStreak, &d.LongestStreak, &d.StreakMultiplier, &d.XP, &d.PowerLevel,
 		&d.VerificationStatus, &d.LastSyncedAt, &d.CreatedAt, &d.UpdatedAt,
 	)
 	if err != nil {

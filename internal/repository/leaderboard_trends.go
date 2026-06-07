@@ -41,6 +41,12 @@ func metricFromDev(sortBy string, d *models.Developer) float64 {
 		return d.ReviewerScore
 	case "community_score":
 		return d.CommunityScore
+	case "current_streak", "streak":
+		return float64(d.CurrentStreak)
+	case "xp":
+		return float64(d.XP)
+	case "power_level":
+		return float64(d.PowerLevel)
 	default:
 		return d.ActivityScore
 	}

@@ -24,6 +24,7 @@ var developerCols = `
 	builder_score, contributor_score, reviewer_score, community_score,
 	pr_contributions, issue_contributions, review_contributions,
 	contribution_period_start::text, contribution_period_end::text,
+	current_streak, longest_streak, streak_multiplier, xp, power_level,
 	verification_status, last_synced_at, created_at, updated_at`
 
 func scanPublicDeveloper(row interface {
@@ -36,6 +37,7 @@ func scanPublicDeveloper(row interface {
 		&d.BuilderScore, &d.ContributorScore, &d.ReviewerScore, &d.CommunityScore,
 		&d.PRContributions, &d.IssueContributions, &d.ReviewContributions,
 		&d.ContributionPeriodStart, &d.ContributionPeriodEnd,
+		&d.CurrentStreak, &d.LongestStreak, &d.StreakMultiplier, &d.XP, &d.PowerLevel,
 		&d.VerificationStatus, &d.LastSyncedAt, &d.CreatedAt, &d.UpdatedAt,
 	)
 }
@@ -142,6 +144,10 @@ var validSortFields = map[string]string{
 	"contributor_score": "contributor_score",
 	"reviewer_score":    "reviewer_score",
 	"community_score":   "community_score",
+	"current_streak":    "current_streak",
+	"streak":            "current_streak",
+	"xp":                "xp",
+	"power_level":       "power_level",
 }
 
 func (r *StatsRepo) GetLeaderboard(ctx context.Context, sortBy string, page, limit int) ([]models.Developer, error) {
@@ -307,6 +313,14 @@ func (r *StatsRepo) GetCommunityActivity(ctx context.Context, days int) ([]model
 func (r *StatsRepo) GetSpotlightDeveloper(ctx context.Context) (*models.Developer, error) {
 	var d models.Developer
 	err := scanPublicDeveloper(r.db.QueryRow(ctx, fmt.Sprintf(`
+		SELECT %s FROM dev_of_month_winners w
+		JOIN developers d ON d.id = w.developer_id
+		ORDER BY w.year DESC, w.month DESC
+		LIMIT 1`, developerCols)), &d)
+	if err == nil {
+		return &d, nil
+	}
+	err = scanPublicDeveloper(r.db.QueryRow(ctx, fmt.Sprintf(`
 		SELECT %s FROM developers
 		WHERE last_synced_at IS NOT NULL
 		ORDER BY activity_score DESC
