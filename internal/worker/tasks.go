@@ -12,6 +12,7 @@ const (
 	TaskSyncDeveloper = "sync:developer"
 	TaskSyncAll       = "sync:all"
 	TaskSyncActive    = "sync:active"
+	TaskDevOfMonth    = "gamification:dev-of-month"
 )
 
 type SyncDeveloperPayload struct {
