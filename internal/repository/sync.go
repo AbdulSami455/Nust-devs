@@ -106,20 +106,42 @@ func (r *SyncRepo) UpsertContributionDays(ctx context.Context, devID string, day
 func (r *SyncRepo) WriteSnapshot(ctx context.Context, dev *models.Developer) error {
 	today := time.Now().Format("2006-01-02")
 	_, err := r.db.Exec(ctx, `
-		INSERT INTO developer_snapshots (developer_id, snapshot_date, public_repos, total_stars, followers, activity_score)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		INSERT INTO developer_snapshots (
+			developer_id, snapshot_date, public_repos, total_stars, followers, activity_score,
+			builder_score, contributor_score, reviewer_score, community_score
+		)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		ON CONFLICT (developer_id, snapshot_date) DO UPDATE SET
-			public_repos   = EXCLUDED.public_repos,
-			total_stars    = EXCLUDED.total_stars,
-			followers      = EXCLUDED.followers,
-			activity_score = EXCLUDED.activity_score`,
+			public_repos       = EXCLUDED.public_repos,
+			total_stars        = EXCLUDED.total_stars,
+			followers          = EXCLUDED.followers,
+			activity_score     = EXCLUDED.activity_score,
+			builder_score      = EXCLUDED.builder_score,
+			contributor_score  = EXCLUDED.contributor_score,
+			reviewer_score     = EXCLUDED.reviewer_score,
+			community_score    = EXCLUDED.community_score`,
 		dev.ID, today, dev.PublicRepos, dev.TotalStars, dev.Followers, dev.ActivityScore,
+		dev.BuilderScore, dev.ContributorScore, dev.ReviewerScore, dev.CommunityScore,
 	)
 	return err
 }
 
 func (r *SyncRepo) UpdateLastSynced(ctx context.Context, devID string) error {
 	_, err := r.db.Exec(ctx, `UPDATE developers SET last_synced_at = NOW() WHERE id = $1`, devID)
+	return err
+}
+
+func (r *SyncRepo) WriteRepoSnapshot(ctx context.Context, repoID string, stars, forks int, pushedAt *time.Time) error {
+	today := time.Now().Format("2006-01-02")
+	_, err := r.db.Exec(ctx, `
+		INSERT INTO repo_snapshots (repo_id, snapshot_date, stars, forks, pushed_at)
+		VALUES ($1, $2, $3, $4, $5)
+		ON CONFLICT (repo_id, snapshot_date) DO UPDATE SET
+			stars     = EXCLUDED.stars,
+			forks     = EXCLUDED.forks,
+			pushed_at = EXCLUDED.pushed_at`,
+		repoID, today, stars, forks, pushedAt,
+	)
 	return err
 }
 
@@ -134,6 +156,61 @@ func (r *SyncRepo) RecomputeActivityScore(ctx context.Context, devID string) err
 			   WHERE developer_id = $1 AND date >= CURRENT_DATE - INTERVAL '30 days') * 5
 		)
 		WHERE id = $1`, devID)
+	return err
+}
+
+func (r *SyncRepo) RecomputeDimensionScores(ctx context.Context, devID string, g *gh.UserGraphStats) error {
+	var originalRepos, licensedRepos, describedRepos, totalStars, followers, following int
+	var company *string
+	err := r.db.QueryRow(ctx, `
+		SELECT
+			d.total_stars,
+			d.followers,
+			d.following,
+			d.company,
+			(SELECT COUNT(*) FROM developer_repos dr
+			 JOIN repos r ON r.id = dr.repo_id
+			 WHERE dr.developer_id = d.id AND NOT r.is_fork),
+			(SELECT COUNT(*) FROM developer_repos dr
+			 JOIN repos r ON r.id = dr.repo_id
+			 WHERE dr.developer_id = d.id AND NOT r.is_fork
+			   AND r.license IS NOT NULL AND btrim(r.license) <> ''),
+			(SELECT COUNT(*) FROM developer_repos dr
+			 JOIN repos r ON r.id = dr.repo_id
+			 WHERE dr.developer_id = d.id
+			   AND r.description IS NOT NULL AND btrim(r.description) <> '')
+		FROM developers d WHERE d.id = $1`, devID).Scan(
+		&totalStars, &followers, &following, &company,
+		&originalRepos, &licensedRepos, &describedRepos,
+	)
+	if err != nil {
+		return err
+	}
+
+	builder := float64(originalRepos)*5 +
+		float64(totalStars)*0.3 +
+		float64(g.ReposWithReadme)*3 +
+		float64(licensedRepos)*4 +
+		float64(g.ReleaseCount)*8 +
+		float64(describedRepos)
+
+	contributor := float64(g.PRContributions)*4 + float64(g.IssueContributions)*2
+	reviewer := float64(g.ReviewContributions) * 5
+
+	community := float64(followers)*0.3 + float64(g.OrgCount)*10 + float64(following)*0.05
+	if company != nil && *company != "" {
+		community += 5
+	}
+
+	_, err = r.db.Exec(ctx, `
+		UPDATE developers SET
+			builder_score     = $2,
+			contributor_score = $3,
+			reviewer_score    = $4,
+			community_score   = $5
+		WHERE id = $1`,
+		devID, builder, contributor, reviewer, community,
+	)
 	return err
 }
 

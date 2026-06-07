@@ -37,6 +37,10 @@ export interface Developer {
   followers: number;
   following: number;
   activity_score: number;
+  builder_score: number;
+  contributor_score: number;
+  reviewer_score: number;
+  community_score: number;
   verification_status: string;
   last_synced_at?: string;
   created_at: string;
@@ -68,6 +72,9 @@ export interface PublicRepo {
   forks: number;
   is_fork: boolean;
   pushed_at?: string;
+  stars_growth_30d?: number | null;
+  forks_growth_30d?: number | null;
+  sparkline?: SparkPoint[];
 }
 
 export interface ContributionDay {
@@ -107,6 +114,7 @@ export interface InnovationGraph {
   repositories: TrendPoint[];
   developers: TrendPoint[];
   organizations: TrendPoint[];
+  net_new_stars: TrendPoint[];
   languages: NameCount[];
   licenses: NameCount[];
   top_organizations: NameCount[];
@@ -159,7 +167,7 @@ export interface OSSStats {
 }
 
 export type ProjectCategory = "all" | "original" | "forks";
-export type ProjectSort = "stars" | "recent" | "forks";
+export type ProjectSort = "stars" | "recent" | "forks" | "growth";
 
 export const api = {
   login: (email: string, password: string) =>
@@ -252,6 +260,12 @@ export const api = {
       const q = params.toString();
       return request<PublicRepo[]>(`/api/v1/projects/top${q ? `?${q}` : ""}`);
     },
+    fastestGrowingProjects: (days = 30, limit = 8) =>
+      request<PublicRepo[]>(
+        `/api/v1/projects/fastest-growing?days=${days}&limit=${limit}`
+      ),
+    repoGrowth: (repoId: string, days = 30) =>
+      request<SparkPoint[]>(`/api/v1/repos/${repoId}/growth?days=${days}`),
     overview: () => request<Overview>("/api/v1/stats/overview"),
     languages: () => request<LanguageStat[]>("/api/v1/stats/languages"),
     communityActivity: (days = 30) =>

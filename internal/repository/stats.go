@@ -21,6 +21,7 @@ func NewStatsRepo(db *pgxpool.Pool) *StatsRepo {
 var developerCols = `
 	id, github_username, display_name, avatar_url, bio, location, company, website,
 	followers, following, public_repos, total_stars, activity_score,
+	builder_score, contributor_score, reviewer_score, community_score,
 	verification_status, last_synced_at, created_at, updated_at`
 
 func scanPublicDeveloper(row interface {
@@ -30,6 +31,7 @@ func scanPublicDeveloper(row interface {
 		&d.ID, &d.GithubUsername, &d.DisplayName, &d.AvatarURL, &d.Bio,
 		&d.Location, &d.Company, &d.Website,
 		&d.Followers, &d.Following, &d.PublicRepos, &d.TotalStars, &d.ActivityScore,
+		&d.BuilderScore, &d.ContributorScore, &d.ReviewerScore, &d.CommunityScore,
 		&d.VerificationStatus, &d.LastSyncedAt, &d.CreatedAt, &d.UpdatedAt,
 	)
 }
@@ -128,10 +130,14 @@ func (r *StatsRepo) GetContributions(ctx context.Context, devID string) ([]model
 }
 
 var validSortFields = map[string]string{
-	"activity_score": "activity_score",
-	"total_stars":    "total_stars",
-	"public_repos":   "public_repos",
-	"followers":      "followers",
+	"activity_score":    "activity_score",
+	"total_stars":       "total_stars",
+	"public_repos":      "public_repos",
+	"followers":         "followers",
+	"builder_score":     "builder_score",
+	"contributor_score": "contributor_score",
+	"reviewer_score":    "reviewer_score",
+	"community_score":   "community_score",
 }
 
 func (r *StatsRepo) GetLeaderboard(ctx context.Context, sortBy string, page, limit int) ([]models.Developer, error) {
@@ -197,6 +203,8 @@ func (r *StatsRepo) ListProjects(ctx context.Context, f ProjectFilter) ([]models
 		order = "r.pushed_at DESC NULLS LAST"
 	case "forks":
 		order = "r.forks DESC"
+	case "growth":
+		order = "r.stars DESC"
 	}
 
 	args = append(args, f.Limit)
@@ -219,6 +227,14 @@ func (r *StatsRepo) ListProjects(ctx context.Context, f ProjectFilter) ([]models
 		}
 		repos = append(repos, rp)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if f.Sort == "growth" {
+		return r.sortReposByGrowth(ctx, repos, f.Limit)
+	}
+	r.attachRepoGrowth(ctx, repos)
 	return repos, nil
 }
 
@@ -454,12 +470,18 @@ func (r *StatsRepo) GetInnovationGraph(ctx context.Context, granularity string, 
 		return nil, err
 	}
 
+	netNewStars, err := r.netNewStarsSeries(ctx, granularity, periodKeys)
+	if err != nil {
+		return nil, err
+	}
+
 	return &models.InnovationGraph{
 		Granularity:      granularity,
 		Pushes:           fillTrendSeries(periodKeys, pushes, granularity),
 		Repositories:     fillTrendSeries(periodKeys, repositories, granularity),
 		Developers:       fillTrendSeries(periodKeys, developers, granularity),
 		Organizations:    fillTrendSeries(periodKeys, organizations, granularity),
+		NetNewStars:      fillTrendSeries(periodKeys, netNewStars, granularity),
 		Languages:        languages,
 		Licenses:         licenses,
 		TopOrganizations: topOrgs,

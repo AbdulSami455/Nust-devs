@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"sort"
+	"time"
 
 	gh "github.com/abdulsami/nust-devs/internal/github"
 	"github.com/abdulsami/nust-devs/internal/models"
@@ -54,6 +55,14 @@ func (s *SyncService) SyncDeveloper(ctx context.Context, dev *models.Developer) 
 		if err := s.syncRepo.LinkDeveloperRepo(ctx, dev.ID, repoID); err != nil {
 			log.Warn("link repo failed", "repo", repo.FullName, "err", err)
 		}
+		pushedAt := repo.PushedAt
+		var pushedPtr *time.Time
+		if !pushedAt.IsZero() {
+			pushedPtr = &pushedAt
+		}
+		if err := s.syncRepo.WriteRepoSnapshot(ctx, repoID, repo.StargazersCount, repo.ForksCount, pushedPtr); err != nil {
+			log.Warn("repo snapshot failed", "repo", repo.FullName, "err", err)
+		}
 	}
 
 	// 3. Languages — top repos by stars only (keeps sync fast; 56 repos × API calls is slow)
@@ -86,30 +95,35 @@ func (s *SyncService) SyncDeveloper(ctx context.Context, dev *models.Developer) 
 	}
 	log.Info("repos synced", "count", len(repos))
 
-	// 4. Contributions (GraphQL — non-fatal; sync still succeeds without heatmap data)
-	days, err := s.github.GetContributions(ctx, dev.GithubUsername)
+	// 4. GraphQL stats — contributions + dimension score inputs (non-fatal)
+	graphStats, err := s.github.GetUserGraphStats(ctx, dev.GithubUsername)
 	if err != nil {
-		log.Warn("fetch contributions skipped", "err", err)
+		log.Warn("fetch graphql stats skipped", "err", err)
 	} else {
-		if err := s.syncRepo.UpsertContributionDays(ctx, dev.ID, days); err != nil {
+		if err := s.syncRepo.UpsertContributionDays(ctx, dev.ID, graphStats.Days); err != nil {
 			log.Warn("upsert contributions failed", "err", err)
 		} else {
-			log.Info("contributions synced", "days", len(days))
+			log.Info("contributions synced", "days", len(graphStats.Days))
+		}
+		if err := s.syncRepo.RecomputeDimensionScores(ctx, dev.ID, graphStats); err != nil {
+			log.Warn("dimension scores failed", "err", err)
+		} else {
+			log.Info("dimension scores updated")
 		}
 	}
 
-	// 5. Refresh dev record for snapshot
+	// 5. Recompute activity score (uses contribution_days)
+	if err := s.syncRepo.RecomputeActivityScore(ctx, dev.ID); err != nil {
+		return fmt.Errorf("recompute score: %w", err)
+	}
+
+	// 6. Daily snapshot with all scores
 	fresh, err := s.devRepo.GetByID(ctx, dev.ID)
 	if err != nil {
 		return fmt.Errorf("refresh developer: %w", err)
 	}
 	if err := s.syncRepo.WriteSnapshot(ctx, fresh); err != nil {
 		return fmt.Errorf("write snapshot: %w", err)
-	}
-
-	// 6. Recompute activity score
-	if err := s.syncRepo.RecomputeActivityScore(ctx, dev.ID); err != nil {
-		return fmt.Errorf("recompute score: %w", err)
 	}
 
 	// 7. Mark synced

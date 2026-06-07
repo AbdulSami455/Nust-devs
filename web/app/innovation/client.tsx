@@ -141,6 +141,13 @@ export function InnovationClient() {
                 loading={loadingGraph}
                 color="var(--chart-4)"
               />
+              <TrendChart
+                title="Net New Stars"
+                subtitle="Quarter-over-quarter star growth across tracked repos"
+                data={graph?.net_new_stars ?? []}
+                loading={loadingGraph}
+                color="var(--chart-5)"
+              />
               <BreakdownChart
                 title="Programming Languages"
                 subtitle="By code volume across tracked repos"

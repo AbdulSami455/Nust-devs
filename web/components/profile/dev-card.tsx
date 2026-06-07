@@ -114,6 +114,20 @@ export function DevCard({
           </div>
         ))}
       </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {[
+          { label: "Builder", value: Math.round(dev.builder_score ?? 0) },
+          { label: "Contributor", value: Math.round(dev.contributor_score ?? 0) },
+          { label: "Reviewer", value: Math.round(dev.reviewer_score ?? 0) },
+          { label: "Community", value: Math.round(dev.community_score ?? 0) },
+        ].map(({ label, value }) => (
+          <div key={label} className="rounded-xl border border-dashed bg-muted/30 px-4 py-3">
+            <p className="text-xs text-muted-foreground">{label}</p>
+            <p className="text-lg font-semibold tabular-nums">{value.toLocaleString()}</p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

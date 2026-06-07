@@ -7,6 +7,7 @@ import { api, type PublicRepo, type ProjectCategory, type ProjectSort } from "@/
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Sparkline } from "@/components/charts/sparkline";
 import { cn } from "@/lib/utils";
 
 const LANG_COLORS: Record<string, string> = {
@@ -28,6 +29,7 @@ const CATEGORIES: { value: ProjectCategory; label: string }[] = [
 
 const SORTS: { value: ProjectSort; label: string }[] = [
   { value: "stars", label: "Most stars" },
+  { value: "growth", label: "Fastest growing" },
   { value: "recent", label: "Recently updated" },
   { value: "forks", label: "Most forked" },
 ];
@@ -57,11 +59,22 @@ function FilterPill({
 
 export function ProjectsClient() {
   const [repos, setRepos] = useState<PublicRepo[]>([]);
+  const [fastestGrowing, setFastestGrowing] = useState<PublicRepo[]>([]);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<ProjectCategory>("original");
   const [sort, setSort] = useState<ProjectSort>("stars");
   const [lang, setLang] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadingFastest, setLoadingFastest] = useState(true);
+
+  useEffect(() => {
+    setLoadingFastest(true);
+    api.public
+      .fastestGrowingProjects(30, 6)
+      .then(setFastestGrowing)
+      .catch(() => setFastestGrowing([]))
+      .finally(() => setLoadingFastest(false));
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -101,6 +114,46 @@ export function ProjectsClient() {
           onChange={(e) => setQuery(e.target.value)}
         />
       </div>
+
+      {(loadingFastest || fastestGrowing.length > 0) && (
+        <section className="bento-card space-y-4">
+          <div>
+            <h2 className="text-lg font-semibold">Fastest growing this month</h2>
+            <p className="text-xs text-muted-foreground">
+              Original repos with the biggest star gains in the last 30 days (from daily snapshots).
+            </p>
+          </div>
+          {loadingFastest ? (
+            <Skeleton className="h-24 rounded-xl" />
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {fastestGrowing.map((repo) => (
+                <a
+                  key={repo.id}
+                  href={repo.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 rounded-xl border bg-background/60 p-3 transition-colors hover:border-primary/40"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-mono text-sm font-medium">{repo.full_name}</p>
+                    <p className="mt-1 text-xs text-emerald-600 dark:text-emerald-400">
+                      +{repo.stars_growth_30d ?? 0} stars
+                      <span className="text-muted-foreground"> · {repo.stars} total</span>
+                    </p>
+                  </div>
+                  <Sparkline
+                    data={repo.sparkline ?? []}
+                    width={80}
+                    height={28}
+                    positive={(repo.stars_growth_30d ?? 0) >= 0}
+                  />
+                </a>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       <div className="space-y-3">
         <div>
@@ -192,6 +245,19 @@ export function ProjectsClient() {
                 <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                   <span>{repo.stars} stars</span>
                   <span>{repo.forks} forks</span>
+                  {repo.stars_growth_30d != null && (
+                    <span
+                      className={cn(
+                        "font-medium",
+                        repo.stars_growth_30d >= 0
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : "text-rose-600 dark:text-rose-400"
+                      )}
+                    >
+                      {repo.stars_growth_30d >= 0 ? "+" : ""}
+                      {repo.stars_growth_30d} / 30d
+                    </span>
+                  )}
                   {repo.is_fork ? (
                     <Badge variant="secondary" className="text-[10px]">
                       Fork
@@ -213,6 +279,19 @@ export function ProjectsClient() {
                   </p>
                 )}
               </a>
+              {(repo.sparkline?.length ?? 0) > 0 && (
+                <div className="mt-3 flex items-center justify-between border-t pt-3">
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                    Stars (14d)
+                  </span>
+                  <Sparkline
+                    data={repo.sparkline ?? []}
+                    width={96}
+                    height={28}
+                    positive={(repo.stars_growth_30d ?? 0) >= 0}
+                  />
+                </div>
+              )}
               {repo.owner && (
                 <p className="mt-2 text-[11px] text-muted-foreground">
                   by{" "}

@@ -10,6 +10,10 @@ import { cn } from "@/lib/utils";
 
 const SORT_OPTIONS = [
   { value: "activity_score", label: "Activity" },
+  { value: "builder_score", label: "Builder" },
+  { value: "contributor_score", label: "Contributor" },
+  { value: "reviewer_score", label: "Reviewer" },
+  { value: "community_score", label: "Community" },
   { value: "total_stars", label: "Stars" },
   { value: "public_repos", label: "Repos" },
   { value: "followers", label: "Followers" },
@@ -41,9 +45,21 @@ function sortValue(dev: LeaderboardEntry, sortBy: string) {
       return dev.public_repos;
     case "followers":
       return dev.followers;
+    case "builder_score":
+      return Math.round(dev.builder_score);
+    case "contributor_score":
+      return Math.round(dev.contributor_score);
+    case "reviewer_score":
+      return Math.round(dev.reviewer_score);
+    case "community_score":
+      return Math.round(dev.community_score);
     default:
       return Math.round(dev.activity_score);
   }
+}
+
+function sortLabel(sortBy: string) {
+  return SORT_OPTIONS.find((o) => o.value === sortBy)?.label ?? "Score";
 }
 
 function scoreDelta(dev: LeaderboardEntry, period: 7 | 30) {
@@ -215,7 +231,7 @@ export default function LeaderboardPage() {
                   ) : (
                     <th className="hidden px-4 py-3 font-medium md:table-cell">Δ Rank</th>
                   )}
-                  <th className="hidden px-4 py-3 font-medium sm:table-cell">Score</th>
+                  <th className="hidden px-4 py-3 font-medium sm:table-cell">{sortLabel(sortBy)}</th>
                   <th className="hidden px-4 py-3 font-medium md:table-cell">Stars</th>
                   <th className="hidden px-4 py-3 font-medium lg:table-cell">Repos</th>
                 </tr>
@@ -284,7 +300,7 @@ export default function LeaderboardPage() {
                         </td>
                       )}
                       <td className="hidden px-4 py-3 tabular-nums sm:table-cell">
-                        {Math.round(dev.activity_score)}
+                        {sortValue(dev, sortBy).toLocaleString()}
                       </td>
                       <td className="hidden px-4 py-3 tabular-nums md:table-cell">
                         {dev.total_stars}
