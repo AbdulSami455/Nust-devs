@@ -1,12 +1,14 @@
 "use client";
 
 import { useCallback } from "react";
+import Link from "next/link";
 import type { Developer } from "@/lib/api";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { PowerLevelBadge } from "@/components/profile/power-level";
 
 export function DevCard({
   dev,
@@ -63,6 +65,9 @@ export function DevCard({
               )}
             </div>
             <p className="font-mono text-sm text-muted-foreground">@{dev.github_username}</p>
+            <div className="pt-2">
+              <PowerLevelBadge dev={dev} />
+            </div>
             {dev.bio && (
               <p className="max-w-lg pt-1 text-sm text-muted-foreground">{dev.bio}</p>
             )}
@@ -90,6 +95,12 @@ export function DevCard({
           <Button variant="outline" onClick={shareTwitter}>
             Share on X
           </Button>
+          <Link
+            href={`/developers/${dev.github_username}/wrapped`}
+            className={cn(buttonVariants({ variant: "outline" }))}
+          >
+            {new Date().getFullYear()} Wrapped
+          </Link>
           <a
             href={`https://github.com/${dev.github_username}`}
             target="_blank"

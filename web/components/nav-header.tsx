@@ -12,6 +12,7 @@ const links = [
   { href: "/innovation", label: "Innovation" },
   { href: "/developers", label: "Developers" },
   { href: "/leaderboard", label: "Leaderboard" },
+  { href: "/hall-of-fame", label: "Hall of Fame" },
   { href: "/projects", label: "Projects" },
   { href: "/stats", label: "Stats" },
 ];

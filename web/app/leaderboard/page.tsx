@@ -10,6 +10,9 @@ import { cn } from "@/lib/utils";
 
 const SORT_OPTIONS = [
   { value: "activity_score", label: "Activity" },
+  { value: "streak", label: "Streak" },
+  { value: "power_level", label: "Level" },
+  { value: "xp", label: "XP" },
   { value: "builder_score", label: "Builder" },
   { value: "contributor_score", label: "Contributor" },
   { value: "reviewer_score", label: "Reviewer" },
@@ -53,6 +56,12 @@ function sortValue(dev: LeaderboardEntry, sortBy: string) {
       return Math.round(dev.reviewer_score);
     case "community_score":
       return Math.round(dev.community_score);
+    case "streak":
+      return dev.current_streak ?? 0;
+    case "power_level":
+      return dev.power_level ?? 1;
+    case "xp":
+      return dev.xp ?? 0;
     default:
       return Math.round(dev.activity_score);
   }
@@ -226,6 +235,9 @@ export default function LeaderboardPage() {
                   <th className="px-4 py-3 font-medium">Rank</th>
                   <th className="px-4 py-3 font-medium">Developer</th>
                   <th className="hidden px-4 py-3 font-medium sm:table-cell">Trend</th>
+                  {sortBy === "streak" && (
+                    <th className="hidden px-4 py-3 font-medium md:table-cell">Multiplier</th>
+                  )}
                   {isRising ? (
                     <th className="px-4 py-3 font-medium">Gain</th>
                   ) : (
@@ -274,6 +286,13 @@ export default function LeaderboardPage() {
                           }
                         />
                       </td>
+                      {sortBy === "streak" && (
+                        <td className="hidden px-4 py-3 tabular-nums md:table-cell">
+                          {(dev.streak_multiplier ?? 1) > 1
+                            ? `${dev.streak_multiplier}x`
+                            : "—"}
+                        </td>
+                      )}
                       {isRising ? (
                         <td className="px-4 py-3">
                           {delta != null ? (

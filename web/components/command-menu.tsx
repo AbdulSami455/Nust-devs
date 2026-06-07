@@ -21,6 +21,7 @@ const pages = [
   { href: "/innovation", label: "Innovation Graph", icon: BarChart3 },
   { href: "/developers", label: "Developers", icon: Users },
   { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
+  { href: "/hall-of-fame", label: "Hall of Fame", icon: Trophy },
   { href: "/projects", label: "Projects", icon: FolderGit2 },
   { href: "/stats", label: "Stats", icon: BarChart3 },
 ];

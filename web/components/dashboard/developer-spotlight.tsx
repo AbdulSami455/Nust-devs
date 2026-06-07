@@ -20,6 +20,9 @@ export function DeveloperSpotlight({
       <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
         Developer Spotlight
       </p>
+      <p className="mt-1 text-[11px] text-muted-foreground">
+        Latest NUST Dev of the Month, or top activity
+      </p>
 
       {loading ? (
         <div className="mt-4 space-y-3">
@@ -48,6 +51,12 @@ export function DeveloperSpotlight({
             <Badge variant="secondary">{dev.total_stars} stars</Badge>
             <Badge variant="secondary">{dev.public_repos} repos</Badge>
             <Badge variant="secondary">Score {Math.round(dev.activity_score)}</Badge>
+            {(dev.power_level ?? 0) > 0 && (
+              <Badge variant="outline">Lv.{dev.power_level}</Badge>
+            )}
+            {(dev.current_streak ?? 0) >= 7 && (
+              <Badge variant="outline">{dev.current_streak}d streak</Badge>
+            )}
           </div>
           <Link
             href={`/developers/${dev.github_username}`}
