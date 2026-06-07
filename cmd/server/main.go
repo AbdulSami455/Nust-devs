@@ -65,6 +65,7 @@ func main() {
 	mux.HandleFunc("GET /api/v1/developers/{username}", pubH.GetDeveloper)
 	mux.HandleFunc("GET /api/v1/developers/{username}/repos", pubH.GetDeveloperRepos)
 	mux.HandleFunc("GET /api/v1/developers/{username}/contributions", pubH.GetDeveloperContributions)
+	mux.HandleFunc("GET /api/v1/developers/{username}/contribution-stats", pubH.GetDeveloperContributionStats)
 	mux.HandleFunc("GET /api/v1/leaderboard", pubH.GetLeaderboard)
 	mux.HandleFunc("GET /api/v1/projects/top", pubH.GetTopProjects)
 	mux.HandleFunc("GET /api/v1/projects/fastest-growing", pubH.GetFastestGrowingProjects)

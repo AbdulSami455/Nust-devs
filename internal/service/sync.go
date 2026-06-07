@@ -105,6 +105,16 @@ func (s *SyncService) SyncDeveloper(ctx context.Context, dev *models.Developer) 
 		} else {
 			log.Info("contributions synced", "days", len(graphStats.Days))
 		}
+		if err := s.syncRepo.UpsertContributionStats(ctx, dev.ID, graphStats); err != nil {
+			log.Warn("contribution stats failed", "err", err)
+		} else {
+			log.Info("contribution stats synced",
+				"prs", graphStats.PRContributions,
+				"issues", graphStats.IssueContributions,
+				"reviews", graphStats.ReviewContributions,
+				"repos", len(graphStats.ByRepository),
+			)
+		}
 		if err := s.syncRepo.RecomputeDimensionScores(ctx, dev.ID, graphStats); err != nil {
 			log.Warn("dimension scores failed", "err", err)
 		} else {

@@ -87,6 +87,19 @@ func (h *PublicHandler) GetDeveloperContributions(w http.ResponseWriter, r *http
 	})
 }
 
+func (h *PublicHandler) GetDeveloperContributionStats(w http.ResponseWriter, r *http.Request) {
+	username := r.PathValue("username")
+	dev, err := h.stats.GetDeveloperByUsername(r.Context(), username)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "developer not found")
+		return
+	}
+	key := "developer:" + username + ":contribution-stats"
+	h.cachedJSON(w, r, key, 30*time.Minute, func() (any, error) {
+		return h.stats.GetContributionStats(r.Context(), dev.ID)
+	})
+}
+
 func (h *PublicHandler) GetLeaderboard(w http.ResponseWriter, r *http.Request) {
 	sortBy := r.URL.Query().Get("sort_by")
 	view := r.URL.Query().Get("view")

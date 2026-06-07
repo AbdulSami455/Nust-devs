@@ -22,6 +22,8 @@ var developerCols = `
 	id, github_username, display_name, avatar_url, bio, location, company, website,
 	followers, following, public_repos, total_stars, activity_score,
 	builder_score, contributor_score, reviewer_score, community_score,
+	pr_contributions, issue_contributions, review_contributions,
+	contribution_period_start::text, contribution_period_end::text,
 	verification_status, last_synced_at, created_at, updated_at`
 
 func scanPublicDeveloper(row interface {
@@ -32,6 +34,8 @@ func scanPublicDeveloper(row interface {
 		&d.Location, &d.Company, &d.Website,
 		&d.Followers, &d.Following, &d.PublicRepos, &d.TotalStars, &d.ActivityScore,
 		&d.BuilderScore, &d.ContributorScore, &d.ReviewerScore, &d.CommunityScore,
+		&d.PRContributions, &d.IssueContributions, &d.ReviewContributions,
+		&d.ContributionPeriodStart, &d.ContributionPeriodEnd,
 		&d.VerificationStatus, &d.LastSyncedAt, &d.CreatedAt, &d.UpdatedAt,
 	)
 }
