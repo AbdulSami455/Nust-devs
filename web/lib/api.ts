@@ -41,6 +41,11 @@ export interface Developer {
   contributor_score: number;
   reviewer_score: number;
   community_score: number;
+  pr_contributions: number;
+  issue_contributions: number;
+  review_contributions: number;
+  contribution_period_start?: string;
+  contribution_period_end?: string;
   verification_status: string;
   last_synced_at?: string;
   created_at: string;
@@ -80,6 +85,24 @@ export interface PublicRepo {
 export interface ContributionDay {
   date: string;
   count: number;
+}
+
+export interface RepoContributionStat {
+  repo_full_name: string;
+  repo_url: string;
+  pull_requests: number;
+  issues: number;
+  reviews: number;
+  total: number;
+}
+
+export interface ContributionStats {
+  period_start: string;
+  period_end: string;
+  pull_requests: number;
+  issues: number;
+  reviews: number;
+  by_repository: RepoContributionStat[];
 }
 
 export interface Overview {
@@ -228,6 +251,8 @@ export const api = {
         request<PublicRepo[]>(`/api/v1/developers/${username}/repos`),
       contributions: (username: string) =>
         request<ContributionDay[]>(`/api/v1/developers/${username}/contributions`),
+      contributionStats: (username: string) =>
+        request<ContributionStats>(`/api/v1/developers/${username}/contribution-stats`),
     },
     leaderboard: (
       sortBy = "activity_score",

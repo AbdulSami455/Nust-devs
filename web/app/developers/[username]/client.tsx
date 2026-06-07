@@ -2,16 +2,24 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { api, type Developer, type PublicRepo, type ContributionDay } from "@/lib/api";
+import {
+  api,
+  type Developer,
+  type PublicRepo,
+  type ContributionDay,
+  type ContributionStats,
+} from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DevCard } from "@/components/profile/dev-card";
 import { ContributionHeatmap } from "@/components/profile/contribution-heatmap";
+import { ContributionStatsPanel } from "@/components/profile/contribution-stats";
 
 export function ProfileClient({ username }: { username: string }) {
   const [dev, setDev] = useState<Developer | null>(null);
   const [repos, setRepos] = useState<PublicRepo[]>([]);
   const [contributions, setContributions] = useState<ContributionDay[]>([]);
+  const [contributionStats, setContributionStats] = useState<ContributionStats | null>(null);
   const [rank, setRank] = useState<number | undefined>();
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -21,12 +29,14 @@ export function ProfileClient({ username }: { username: string }) {
       api.public.developers.get(username),
       api.public.developers.repos(username),
       api.public.developers.contributions(username),
+      api.public.developers.contributionStats(username).catch(() => null),
       api.public.leaderboard("activity_score", 1, 100),
     ])
-      .then(([d, r, c, board]) => {
+      .then(([d, r, c, stats, board]) => {
         setDev(d);
         setRepos(r ?? []);
         setContributions(c ?? []);
+        setContributionStats(stats);
         const idx = board.findIndex((x) => x.github_username === username);
         setRank(idx >= 0 ? idx + 1 : undefined);
       })
@@ -70,6 +80,8 @@ export function ProfileClient({ username }: { username: string }) {
           <ContributionHeatmap days={contributions} />
         </div>
       )}
+
+      {contributionStats && <ContributionStatsPanel stats={contributionStats} />}
 
       <section className="space-y-4">
         <div className="flex items-end justify-between gap-4">
