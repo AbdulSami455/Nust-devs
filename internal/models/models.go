@@ -22,6 +22,11 @@ type Developer struct {
 	ContributorScore   float64    `json:"contributor_score"`
 	ReviewerScore      float64    `json:"reviewer_score"`
 	CommunityScore     float64    `json:"community_score"`
+	PRContributions    int        `json:"pr_contributions"`
+	IssueContributions int        `json:"issue_contributions"`
+	ReviewContributions int       `json:"review_contributions"`
+	ContributionPeriodStart *string `json:"contribution_period_start,omitempty"`
+	ContributionPeriodEnd   *string `json:"contribution_period_end,omitempty"`
 	VerificationStatus string     `json:"verification_status"`
 	LastSyncedAt       *time.Time `json:"last_synced_at,omitempty"`
 	CreatedAt          time.Time  `json:"created_at"`
@@ -121,6 +126,24 @@ type OSSStats struct {
 type ContributionDay struct {
 	Date  string `json:"date"`
 	Count int    `json:"count"`
+}
+
+type RepoContributionStat struct {
+	RepoFullName string `json:"repo_full_name"`
+	RepoURL      string `json:"repo_url"`
+	PullRequests int    `json:"pull_requests"`
+	Issues       int    `json:"issues"`
+	Reviews      int    `json:"reviews"`
+	Total        int    `json:"total"`
+}
+
+type ContributionStats struct {
+	PeriodStart  string                 `json:"period_start"`
+	PeriodEnd    string                 `json:"period_end"`
+	PullRequests int                    `json:"pull_requests"`
+	Issues       int                    `json:"issues"`
+	Reviews      int                    `json:"reviews"`
+	ByRepository []RepoContributionStat `json:"by_repository"`
 }
 
 type CommunityActivityDay struct {

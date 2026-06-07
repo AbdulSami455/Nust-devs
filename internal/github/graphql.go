@@ -29,6 +29,18 @@ query($login: String!, $from: DateTime!, $to: DateTime!) {
       totalIssueContributions
       totalPullRequestContributions
       totalPullRequestReviewContributions
+      pullRequestContributionsByRepository(maxRepositories: 50) {
+        repository { nameWithOwner url }
+        contributions { totalCount }
+      }
+      issueContributionsByRepository(maxRepositories: 50) {
+        repository { nameWithOwner url }
+        contributions { totalCount }
+      }
+      pullRequestReviewContributionsByRepository(maxRepositories: 50) {
+        repository { nameWithOwner url }
+        contributions { totalCount }
+      }
       contributionCalendar {
         weeks {
           contributionDays {
@@ -41,7 +53,17 @@ query($login: String!, $from: DateTime!, $to: DateTime!) {
   }
 }`
 
+type RepoContribution struct {
+	FullName string
+	URL      string
+	PRs      int
+	Issues   int
+	Reviews  int
+}
+
 type UserGraphStats struct {
+	PeriodStart         time.Time
+	PeriodEnd           time.Time
 	Days                []ContributionDay
 	IssueContributions  int
 	PRContributions     int
@@ -49,18 +71,19 @@ type UserGraphStats struct {
 	OrgCount            int
 	ReposWithReadme     int
 	ReleaseCount        int
+	ByRepository        []RepoContribution
 }
 
 func (c *Client) GetUserGraphStats(ctx context.Context, username string) (*UserGraphStats, error) {
-	to := time.Now()
+	to := time.Now().UTC()
 	from := to.AddDate(-1, 0, 0)
 
 	payload, _ := json.Marshal(map[string]any{
 		"query": userStatsQuery,
 		"variables": map[string]any{
 			"login": username,
-			"from":  from.UTC().Format(time.RFC3339),
-			"to":    to.UTC().Format(time.RFC3339),
+			"from":  from.Format(time.RFC3339),
+			"to":    to.Format(time.RFC3339),
 		},
 	})
 
@@ -84,10 +107,10 @@ func (c *Client) GetUserGraphStats(ctx context.Context, username string) (*UserG
 				} `json:"organizations"`
 				Repositories struct {
 					Nodes []struct {
-						IsFork        bool   `json:"isFork"`
-						StargazerCount int   `json:"stargazerCount"`
-						Description   string `json:"description"`
-						Releases      struct {
+						IsFork         bool   `json:"isFork"`
+						StargazerCount int    `json:"stargazerCount"`
+						Description    string `json:"description"`
+						Releases       struct {
 							TotalCount int `json:"totalCount"`
 						} `json:"releases"`
 						Object *struct {
@@ -99,7 +122,10 @@ func (c *Client) GetUserGraphStats(ctx context.Context, username string) (*UserG
 					TotalIssueContributions             int `json:"totalIssueContributions"`
 					TotalPullRequestContributions       int `json:"totalPullRequestContributions"`
 					TotalPullRequestReviewContributions int `json:"totalPullRequestReviewContributions"`
-					ContributionCalendar                struct {
+					PullRequestContributionsByRepository  []repoContribGroup `json:"pullRequestContributionsByRepository"`
+					IssueContributionsByRepository        []repoContribGroup `json:"issueContributionsByRepository"`
+					PullRequestReviewContributionsByRepository []repoContribGroup `json:"pullRequestReviewContributionsByRepository"`
+					ContributionCalendar                  struct {
 						Weeks []struct {
 							Days []ContributionDay `json:"contributionDays"`
 						} `json:"weeks"`
@@ -120,14 +146,17 @@ func (c *Client) GetUserGraphStats(ctx context.Context, username string) (*UserG
 	}
 
 	u := result.Data.User
+	cc := u.ContributionsCollection
 	stats := &UserGraphStats{
-		IssueContributions:  u.ContributionsCollection.TotalIssueContributions,
-		PRContributions:     u.ContributionsCollection.TotalPullRequestContributions,
-		ReviewContributions: u.ContributionsCollection.TotalPullRequestReviewContributions,
+		PeriodStart:         from,
+		PeriodEnd:           to,
+		IssueContributions:  cc.TotalIssueContributions,
+		PRContributions:     cc.TotalPullRequestContributions,
+		ReviewContributions: cc.TotalPullRequestReviewContributions,
 		OrgCount:            u.Organizations.TotalCount,
 	}
 
-	for _, week := range u.ContributionsCollection.ContributionCalendar.Weeks {
+	for _, week := range cc.ContributionCalendar.Weeks {
 		stats.Days = append(stats.Days, week.Days...)
 	}
 
@@ -141,8 +170,63 @@ func (c *Client) GetUserGraphStats(ctx context.Context, username string) (*UserG
 		stats.ReleaseCount += repo.Releases.TotalCount
 	}
 
-	_ = u.Followers.TotalCount // followers synced via REST profile
+	stats.ByRepository = mergeRepoContributions(
+		cc.PullRequestContributionsByRepository,
+		cc.IssueContributionsByRepository,
+		cc.PullRequestReviewContributionsByRepository,
+	)
+
+	_ = u.Followers.TotalCount
 	return stats, nil
+}
+
+type repoContribGroup struct {
+	Repository struct {
+		NameWithOwner string `json:"nameWithOwner"`
+		URL           string `json:"url"`
+	} `json:"repository"`
+	Contributions struct {
+		TotalCount int `json:"totalCount"`
+	} `json:"contributions"`
+}
+
+func mergeRepoContributions(prGroups, issueGroups, reviewGroups []repoContribGroup) []RepoContribution {
+	byName := map[string]*RepoContribution{}
+
+	apply := func(groups []repoContribGroup, kind string) {
+		for _, g := range groups {
+			name := g.Repository.NameWithOwner
+			if name == "" {
+				continue
+			}
+			entry, ok := byName[name]
+			if !ok {
+				entry = &RepoContribution{FullName: name, URL: g.Repository.URL}
+				byName[name] = entry
+			}
+			if entry.URL == "" {
+				entry.URL = g.Repository.URL
+			}
+			switch kind {
+			case "pr":
+				entry.PRs = g.Contributions.TotalCount
+			case "issue":
+				entry.Issues = g.Contributions.TotalCount
+			case "review":
+				entry.Reviews = g.Contributions.TotalCount
+			}
+		}
+	}
+
+	apply(prGroups, "pr")
+	apply(issueGroups, "issue")
+	apply(reviewGroups, "review")
+
+	out := make([]RepoContribution, 0, len(byName))
+	for _, v := range byName {
+		out = append(out, *v)
+	}
+	return out
 }
 
 // GetContributions returns contribution calendar days for the last year.
