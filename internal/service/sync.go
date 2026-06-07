@@ -127,6 +127,10 @@ func (s *SyncService) SyncDeveloper(ctx context.Context, dev *models.Developer) 
 		return fmt.Errorf("recompute score: %w", err)
 	}
 
+	if err := s.syncRepo.RecomputeGamification(ctx, dev.ID); err != nil {
+		log.Warn("gamification recompute failed", "err", err)
+	}
+
 	// 6. Daily snapshot with all scores
 	fresh, err := s.devRepo.GetByID(ctx, dev.ID)
 	if err != nil {

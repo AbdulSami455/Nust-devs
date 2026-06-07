@@ -10,7 +10,9 @@ import {
   type CommunityActivityDay,
   type ActivityEvent,
   type OSSStats,
+  type StreakSummary,
 } from "@/lib/api";
+import { StreakWidget } from "@/components/dashboard/streak-widget";
 import { BentoStats } from "@/components/dashboard/bento-stats";
 import { ActivityChart } from "@/components/dashboard/activity-chart";
 import { DeveloperSpotlight } from "@/components/dashboard/developer-spotlight";
@@ -30,6 +32,7 @@ export default function HomePage() {
   const [topProjects, setTopProjects] = useState<PublicRepo[]>([]);
   const [recentEvents, setRecentEvents] = useState<ActivityEvent[]>([]);
   const [ossStats, setOssStats] = useState<OSSStats | null>(null);
+  const [streakSummary, setStreakSummary] = useState<StreakSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -41,6 +44,7 @@ export default function HomePage() {
       api.public.topProjects({ category: "original", limit: 5 }).then(setTopProjects).catch(() => {}),
       api.public.recentActivity(12).then(setRecentEvents).catch(() => {}),
       api.public.openSource().then(setOssStats).catch(() => {}),
+      api.public.streakSummary().then(setStreakSummary).catch(() => {}),
     ]).finally(() => setLoading(false));
   }, []);
 
@@ -68,6 +72,10 @@ export default function HomePage() {
 
       <section className="mb-10">
         <BentoStats overview={overview} loading={loading} />
+      </section>
+
+      <section className="mb-10">
+        <StreakWidget summary={streakSummary} loading={loading} />
       </section>
 
       <section className="mb-10">
