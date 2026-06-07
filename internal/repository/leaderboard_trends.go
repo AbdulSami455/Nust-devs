@@ -13,12 +13,16 @@ import (
 const sparklineDays = 14
 
 type snapshotRow struct {
-	DeveloperID   string
-	SnapshotDate  time.Time
-	ActivityScore float64
-	TotalStars    int
-	PublicRepos   int
-	Followers     int
+	DeveloperID      string
+	SnapshotDate     time.Time
+	ActivityScore    float64
+	TotalStars       int
+	PublicRepos      int
+	Followers        int
+	BuilderScore     float64
+	ContributorScore float64
+	ReviewerScore    float64
+	CommunityScore   float64
 }
 
 func metricFromDev(sortBy string, d *models.Developer) float64 {
@@ -29,6 +33,14 @@ func metricFromDev(sortBy string, d *models.Developer) float64 {
 		return float64(d.PublicRepos)
 	case "followers":
 		return float64(d.Followers)
+	case "builder_score":
+		return d.BuilderScore
+	case "contributor_score":
+		return d.ContributorScore
+	case "reviewer_score":
+		return d.ReviewerScore
+	case "community_score":
+		return d.CommunityScore
 	default:
 		return d.ActivityScore
 	}
@@ -42,6 +54,14 @@ func metricFromSnapshot(sortBy string, s snapshotRow) float64 {
 		return float64(s.PublicRepos)
 	case "followers":
 		return float64(s.Followers)
+	case "builder_score":
+		return s.BuilderScore
+	case "contributor_score":
+		return s.ContributorScore
+	case "reviewer_score":
+		return s.ReviewerScore
+	case "community_score":
+		return s.CommunityScore
 	default:
 		return s.ActivityScore
 	}
@@ -186,7 +206,8 @@ func (r *StatsRepo) getAllDevelopersSorted(ctx context.Context, sortBy string) (
 
 func (r *StatsRepo) fetchSnapshots(ctx context.Context, devIDs []string, since time.Time) (map[string][]snapshotRow, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT developer_id, snapshot_date, activity_score, total_stars, public_repos, followers
+		SELECT developer_id, snapshot_date, activity_score, total_stars, public_repos, followers,
+		       builder_score, contributor_score, reviewer_score, community_score
 		FROM developer_snapshots
 		WHERE developer_id = ANY($1) AND snapshot_date >= $2
 		ORDER BY developer_id, snapshot_date ASC`, devIDs, since.Format("2006-01-02"))
@@ -198,7 +219,8 @@ func (r *StatsRepo) fetchSnapshots(ctx context.Context, devIDs []string, since t
 	out := map[string][]snapshotRow{}
 	for rows.Next() {
 		var s snapshotRow
-		if err := rows.Scan(&s.DeveloperID, &s.SnapshotDate, &s.ActivityScore, &s.TotalStars, &s.PublicRepos, &s.Followers); err != nil {
+		if err := rows.Scan(&s.DeveloperID, &s.SnapshotDate, &s.ActivityScore, &s.TotalStars, &s.PublicRepos, &s.Followers,
+			&s.BuilderScore, &s.ContributorScore, &s.ReviewerScore, &s.CommunityScore); err != nil {
 			return nil, err
 		}
 		out[s.DeveloperID] = append(out[s.DeveloperID], s)
