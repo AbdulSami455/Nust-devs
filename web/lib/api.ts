@@ -46,6 +46,11 @@ export interface Developer {
   review_contributions: number;
   contribution_period_start?: string;
   contribution_period_end?: string;
+  current_streak?: number;
+  longest_streak?: number;
+  streak_multiplier?: number;
+  xp?: number;
+  power_level?: number;
   verification_status: string;
   last_synced_at?: string;
   created_at: string;
@@ -103,6 +108,47 @@ export interface ContributionStats {
   issues: number;
   reviews: number;
   by_repository: RepoContributionStat[];
+}
+
+export interface StreakSummary {
+  devs_on_7plus_streak: number;
+  devs_on_30plus_streak: number;
+  longest_active_streak: number;
+}
+
+export interface DevOfMonthWinner {
+  year: number;
+  month: number;
+  score: number;
+  activity_points: number;
+  rank_gain: number;
+  stars_gained: number;
+  power_title?: string;
+  developer: Developer;
+}
+
+export interface WrappedReport {
+  year: number;
+  username: string;
+  display_name?: string;
+  avatar_url?: string;
+  total_contributions: number;
+  top_repo?: string;
+  top_repo_stars: number;
+  rank_start: number;
+  rank_end: number;
+  rank_change: number;
+  activity_percentile: number;
+  top_languages: NameCount[];
+  power_level: number;
+  power_title: string;
+  xp: number;
+  current_streak: number;
+  longest_streak: number;
+  pr_contributions: number;
+  total_stars: number;
+  public_repos: number;
+  highlights: string[];
 }
 
 export interface Overview {
@@ -253,6 +299,10 @@ export const api = {
         request<ContributionDay[]>(`/api/v1/developers/${username}/contributions`),
       contributionStats: (username: string) =>
         request<ContributionStats>(`/api/v1/developers/${username}/contribution-stats`),
+      wrapped: (username: string, year?: number) =>
+        request<WrappedReport>(
+          `/api/v1/developers/${username}/wrapped${year ? `?year=${year}` : ""}`
+        ),
     },
     leaderboard: (
       sortBy = "activity_score",
@@ -303,6 +353,9 @@ export const api = {
       request<InnovationGraph>(
         `/api/v1/stats/innovation-graph?granularity=${granularity}&periods=${periods}`
       ),
+    streakSummary: () => request<StreakSummary>("/api/v1/stats/streak-summary"),
+    devOfMonth: (limit = 12) =>
+      request<DevOfMonthWinner[]>(`/api/v1/dev-of-month?limit=${limit}`),
     submitProfileRequest: (data: {
       github_username: string;
       email?: string;
