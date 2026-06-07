@@ -41,6 +41,7 @@ func main() {
 	ghClient := gh.NewClient(ghToken)
 	syncRepo := repository.NewSyncRepo(pool)
 	devRepo := repository.NewDeveloperRepo(pool)
+	statsRepo := repository.NewStatsRepo(pool)
 	svc := service.NewSyncService(ghClient, syncRepo, devRepo)
 
 	asynqClient := asynq.NewClient(redisOpt)
@@ -48,6 +49,7 @@ func main() {
 
 	syncProcessor := worker.NewSyncProcessor(svc, redisCache)
 	bulkProcessor := worker.NewBulkSyncProcessor(devRepo, asynqClient)
+	gamificationProcessor := worker.NewGamificationProcessor(statsRepo)
 
 	// Asynq server — 3 concurrent sync slots to respect rate limits
 	srv := asynq.NewServer(redisOpt, asynq.Config{
@@ -59,11 +61,13 @@ func main() {
 	mux.HandleFunc(worker.TaskSyncDeveloper, syncProcessor.ProcessTask)
 	mux.HandleFunc(worker.TaskSyncAll, bulkProcessor.ProcessSyncAll)
 	mux.HandleFunc(worker.TaskSyncActive, bulkProcessor.ProcessSyncActive)
+	mux.HandleFunc(worker.TaskDevOfMonth, gamificationProcessor.ProcessDevOfMonth)
 
-	// Staggered scheduling: full sync nightly, incremental every 6h
+	// Staggered scheduling: full sync nightly, incremental every 6h, dev-of-month on 1st
 	scheduler := asynq.NewScheduler(redisOpt, nil)
 	scheduler.Register("@midnight", asynq.NewTask(worker.TaskSyncAll, nil))
 	scheduler.Register("0 */6 * * *", asynq.NewTask(worker.TaskSyncActive, nil))
+	scheduler.Register("0 1 1 * *", asynq.NewTask(worker.TaskDevOfMonth, nil))
 
 	if err := scheduler.Start(); err != nil {
 		slog.Error("scheduler failed to start", "err", err)

@@ -62,10 +62,11 @@ func main() {
 	// Public API
 	mux.HandleFunc("GET /api/v1/developers", pubH.ListDevelopers)
 	mux.HandleFunc("GET /api/v1/developers/spotlight", pubH.GetSpotlight)
-	mux.HandleFunc("GET /api/v1/developers/{username}", pubH.GetDeveloper)
+	mux.HandleFunc("GET /api/v1/developers/{username}/wrapped", pubH.GetWrapped)
 	mux.HandleFunc("GET /api/v1/developers/{username}/repos", pubH.GetDeveloperRepos)
 	mux.HandleFunc("GET /api/v1/developers/{username}/contributions", pubH.GetDeveloperContributions)
 	mux.HandleFunc("GET /api/v1/developers/{username}/contribution-stats", pubH.GetDeveloperContributionStats)
+	mux.HandleFunc("GET /api/v1/developers/{username}", pubH.GetDeveloper)
 	mux.HandleFunc("GET /api/v1/leaderboard", pubH.GetLeaderboard)
 	mux.HandleFunc("GET /api/v1/projects/top", pubH.GetTopProjects)
 	mux.HandleFunc("GET /api/v1/projects/fastest-growing", pubH.GetFastestGrowingProjects)
@@ -76,6 +77,8 @@ func main() {
 	mux.HandleFunc("GET /api/v1/stats/community-activity", pubH.GetCommunityActivity)
 	mux.HandleFunc("GET /api/v1/stats/open-source", pubH.GetOSSStats)
 	mux.HandleFunc("GET /api/v1/stats/innovation-graph", pubH.GetInnovationGraph)
+	mux.HandleFunc("GET /api/v1/stats/streak-summary", pubH.GetStreakSummary)
+	mux.HandleFunc("GET /api/v1/dev-of-month", pubH.GetDevOfMonth)
 
 	mux.HandleFunc("POST /api/v1/profile-requests", reqH.Submit)
 	mux.HandleFunc("GET /api/v1/profile-requests/check", reqH.CheckUsername)

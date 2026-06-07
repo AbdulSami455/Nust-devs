@@ -219,6 +219,38 @@ func (h *PublicHandler) GetOSSStats(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (h *PublicHandler) GetStreakSummary(w http.ResponseWriter, r *http.Request) {
+	h.cachedJSON(w, r, "stats:streak-summary", 5*time.Minute, func() (any, error) {
+		return h.stats.GetStreakSummary(r.Context())
+	})
+}
+
+func (h *PublicHandler) GetDevOfMonth(w http.ResponseWriter, r *http.Request) {
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	h.cachedJSON(w, r, fmt.Sprintf("stats:dev-of-month:%d", limit), 15*time.Minute, func() (any, error) {
+		winners, err := h.stats.ListDevOfMonthWinners(r.Context(), limit)
+		if err != nil {
+			return nil, err
+		}
+		if winners == nil {
+			return []struct{}{}, nil
+		}
+		return winners, nil
+	})
+}
+
+func (h *PublicHandler) GetWrapped(w http.ResponseWriter, r *http.Request) {
+	username := r.PathValue("username")
+	year, _ := strconv.Atoi(r.URL.Query().Get("year"))
+	if year < 2020 || year > 2100 {
+		year = time.Now().Year()
+	}
+	key := fmt.Sprintf("developers:%s:wrapped:%d", username, year)
+	h.cachedJSON(w, r, key, 30*time.Minute, func() (any, error) {
+		return h.stats.GetWrapped(r.Context(), username, year)
+	})
+}
+
 func (h *PublicHandler) GetInnovationGraph(w http.ResponseWriter, r *http.Request) {
 	granularity := r.URL.Query().Get("granularity")
 	periods, _ := strconv.Atoi(r.URL.Query().Get("periods"))

@@ -25,9 +25,14 @@ type Developer struct {
 	PRContributions    int        `json:"pr_contributions"`
 	IssueContributions int        `json:"issue_contributions"`
 	ReviewContributions int       `json:"review_contributions"`
-	ContributionPeriodStart *string `json:"contribution_period_start,omitempty"`
-	ContributionPeriodEnd   *string `json:"contribution_period_end,omitempty"`
-	VerificationStatus string     `json:"verification_status"`
+	ContributionPeriodStart *string  `json:"contribution_period_start,omitempty"`
+	ContributionPeriodEnd   *string  `json:"contribution_period_end,omitempty"`
+	CurrentStreak           int        `json:"current_streak"`
+	LongestStreak           int        `json:"longest_streak"`
+	StreakMultiplier        float64    `json:"streak_multiplier"`
+	XP                      int        `json:"xp"`
+	PowerLevel              int        `json:"power_level"`
+	VerificationStatus      string     `json:"verification_status"`
 	LastSyncedAt       *time.Time `json:"last_synced_at,omitempty"`
 	CreatedAt          time.Time  `json:"created_at"`
 	UpdatedAt          time.Time  `json:"updated_at"`
@@ -172,6 +177,47 @@ type ContributorStat struct {
 type SparkPoint struct {
 	Date  string  `json:"date"`
 	Value float64 `json:"value"`
+}
+
+type StreakSummary struct {
+	DevsOn7PlusStreak  int `json:"devs_on_7plus_streak"`
+	DevsOn30PlusStreak int `json:"devs_on_30plus_streak"`
+	LongestActiveStreak int `json:"longest_active_streak"`
+}
+
+type DevOfMonthWinner struct {
+	Year           int       `json:"year"`
+	Month          int       `json:"month"`
+	Score          float64   `json:"score"`
+	ActivityPoints int       `json:"activity_points"`
+	RankGain       int       `json:"rank_gain"`
+	StarsGained    int       `json:"stars_gained"`
+	PowerTitle     string    `json:"power_title,omitempty"`
+	Developer      Developer `json:"developer"`
+}
+
+type WrappedReport struct {
+	Year               int         `json:"year"`
+	Username           string      `json:"username"`
+	DisplayName        *string     `json:"display_name,omitempty"`
+	AvatarURL          *string     `json:"avatar_url,omitempty"`
+	TotalContributions int         `json:"total_contributions"`
+	TopRepo            string      `json:"top_repo,omitempty"`
+	TopRepoStars       int         `json:"top_repo_stars"`
+	RankStart          int         `json:"rank_start"`
+	RankEnd            int         `json:"rank_end"`
+	RankChange         int         `json:"rank_change"`
+	ActivityPercentile int         `json:"activity_percentile"`
+	TopLanguages       []NameCount `json:"top_languages"`
+	PowerLevel         int         `json:"power_level"`
+	PowerTitle         string      `json:"power_title"`
+	XP                 int         `json:"xp"`
+	CurrentStreak      int         `json:"current_streak"`
+	LongestStreak      int         `json:"longest_streak"`
+	PRContributions    int         `json:"pr_contributions"`
+	TotalStars         int         `json:"total_stars"`
+	PublicRepos        int         `json:"public_repos"`
+	Highlights         []string    `json:"highlights"`
 }
 
 type LeaderboardEntry struct {
