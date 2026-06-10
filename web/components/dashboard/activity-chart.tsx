@@ -18,10 +18,10 @@ export function ActivityChart({
   data,
   loading,
 }: {
-  data: CommunityActivityDay[];
+  data: CommunityActivityDay[] | null | undefined;
   loading: boolean;
 }) {
-  const chartData = data.map((d) => ({
+  const chartData = (Array.isArray(data) ? data : []).map((d) => ({
     date: d.date.slice(5),
     commits: d.count,
   }));

@@ -24,6 +24,10 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
+function asArray<T>(value: T[] | null | undefined): T[] {
+  return Array.isArray(value) ? value : [];
+}
+
 export default function HomePage() {
   const [overview, setOverview] = useState<Overview | null>(null);
   const [activity, setActivity] = useState<CommunityActivityDay[]>([]);
@@ -38,11 +42,11 @@ export default function HomePage() {
   useEffect(() => {
     Promise.all([
       api.public.overview().then(setOverview).catch(() => {}),
-      api.public.communityActivity(30).then(setActivity).catch(() => {}),
+      api.public.communityActivity(30).then((data) => setActivity(asArray(data))).catch(() => {}),
       api.public.spotlight().then(setSpotlight).catch(() => {}),
-      api.public.leaderboard("activity_score", 1, 6).then(setTopDevs).catch(() => {}),
-      api.public.topProjects({ category: "original", limit: 5 }).then(setTopProjects).catch(() => {}),
-      api.public.recentActivity(12).then(setRecentEvents).catch(() => {}),
+      api.public.leaderboard("activity_score", 1, 6).then((data) => setTopDevs(asArray(data))).catch(() => {}),
+      api.public.topProjects({ category: "original", limit: 5 }).then((data) => setTopProjects(asArray(data))).catch(() => {}),
+      api.public.recentActivity(12).then((data) => setRecentEvents(asArray(data))).catch(() => {}),
       api.public.openSource().then(setOssStats).catch(() => {}),
       api.public.streakSummary().then(setStreakSummary).catch(() => {}),
     ]).finally(() => setLoading(false));
