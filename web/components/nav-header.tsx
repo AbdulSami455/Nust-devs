@@ -24,10 +24,10 @@ export function NavHeader() {
     <header className="glass-nav sticky top-0 z-50">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
         <Link href="/" className="flex items-center gap-2 shrink-0">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground text-xs font-bold">
+          <div className="flex size-8 items-center justify-center rounded-lg border border-border bg-card text-xs font-bold text-primary shadow-sm">
             N
           </div>
-          <span className="hidden font-bold tracking-tight sm:inline">NUST Devs</span>
+          <span className="hidden font-semibold tracking-tight sm:inline">NUST Devs</span>
         </Link>
 
         <nav className="hidden items-center gap-0.5 md:flex">
@@ -38,8 +38,8 @@ export function NavHeader() {
               className={cn(
                 "rounded-lg px-3 py-1.5 text-sm transition-colors",
                 path === href
-                  ? "bg-primary/15 font-medium text-primary"
-                  : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                  ? "bg-secondary font-medium text-foreground"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
               )}
             >
               {label}

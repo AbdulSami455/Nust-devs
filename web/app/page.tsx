@@ -58,7 +58,7 @@ export default function HomePage() {
         <div className="space-y-3">
           <Badge variant="secondary">NUST developer community</Badge>
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
-            NUST Devs on <span className="text-gradient-gold">GitHub</span>
+            NUST Devs on <span className="text-primary">GitHub</span>
           </h1>
           <p className="max-w-xl text-muted-foreground">
             Track open source contributions, repositories, and top projects from NUST developers — stats, leaderboards, and profiles in one place.
