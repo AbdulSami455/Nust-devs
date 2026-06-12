@@ -59,12 +59,12 @@ func (r *RequestRepo) Create(ctx context.Context, in models.SubmitProfileRequest
 
 	var req models.DeveloperRequest
 	err = r.db.QueryRow(ctx, `
-		INSERT INTO developer_requests (github_username, email, display_name, message)
-		VALUES ($1, $2, $3, $4)
-		RETURNING id, github_username, email, display_name, message, status, admin_notes, reviewed_at, created_at`,
-		in.GithubUsername, in.Email, in.DisplayName, in.Message,
+		INSERT INTO developer_requests (github_username, email, display_name, batch, course, message)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING id, github_username, email, display_name, batch, course, message, status, admin_notes, reviewed_at, created_at`,
+		in.GithubUsername, in.Email, in.DisplayName, in.Batch, in.Course, in.Message,
 	).Scan(
-		&req.ID, &req.GithubUsername, &req.Email, &req.DisplayName, &req.Message,
+		&req.ID, &req.GithubUsername, &req.Email, &req.DisplayName, &req.Batch, &req.Course, &req.Message,
 		&req.Status, &req.AdminNotes, &req.ReviewedAt, &req.CreatedAt,
 	)
 	if err != nil {
@@ -78,11 +78,11 @@ func (r *RequestRepo) List(ctx context.Context, status string) ([]models.Develop
 	var err error
 	if status == "" {
 		rows, err = r.db.Query(ctx, `
-			SELECT id, github_username, email, display_name, message, status, admin_notes, reviewed_at, created_at
+			SELECT id, github_username, email, display_name, batch, course, message, status, admin_notes, reviewed_at, created_at
 			FROM developer_requests ORDER BY created_at DESC`)
 	} else {
 		rows, err = r.db.Query(ctx, `
-			SELECT id, github_username, email, display_name, message, status, admin_notes, reviewed_at, created_at
+			SELECT id, github_username, email, display_name, batch, course, message, status, admin_notes, reviewed_at, created_at
 			FROM developer_requests WHERE status = $1 ORDER BY created_at DESC`, status)
 	}
 	if err != nil {
@@ -94,7 +94,7 @@ func (r *RequestRepo) List(ctx context.Context, status string) ([]models.Develop
 	for rows.Next() {
 		var req models.DeveloperRequest
 		if err := rows.Scan(
-			&req.ID, &req.GithubUsername, &req.Email, &req.DisplayName, &req.Message,
+			&req.ID, &req.GithubUsername, &req.Email, &req.DisplayName, &req.Batch, &req.Course, &req.Message,
 			&req.Status, &req.AdminNotes, &req.ReviewedAt, &req.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -107,10 +107,10 @@ func (r *RequestRepo) List(ctx context.Context, status string) ([]models.Develop
 func (r *RequestRepo) GetByID(ctx context.Context, id string) (*models.DeveloperRequest, error) {
 	var req models.DeveloperRequest
 	err := r.db.QueryRow(ctx, `
-		SELECT id, github_username, email, display_name, message, status, admin_notes, reviewed_at, created_at
+		SELECT id, github_username, email, display_name, batch, course, message, status, admin_notes, reviewed_at, created_at
 		FROM developer_requests WHERE id = $1`, id,
 	).Scan(
-		&req.ID, &req.GithubUsername, &req.Email, &req.DisplayName, &req.Message,
+		&req.ID, &req.GithubUsername, &req.Email, &req.DisplayName, &req.Batch, &req.Course, &req.Message,
 		&req.Status, &req.AdminNotes, &req.ReviewedAt, &req.CreatedAt,
 	)
 	if err != nil {
@@ -130,10 +130,10 @@ func (r *RequestRepo) SetStatus(ctx context.Context, id, status string, adminNot
 			admin_notes = COALESCE($3, admin_notes),
 			reviewed_at = NOW()
 		WHERE id = $1 AND status = 'pending'
-		RETURNING id, github_username, email, display_name, message, status, admin_notes, reviewed_at, created_at`,
+		RETURNING id, github_username, email, display_name, batch, course, message, status, admin_notes, reviewed_at, created_at`,
 		id, status, adminNotes,
 	).Scan(
-		&req.ID, &req.GithubUsername, &req.Email, &req.DisplayName, &req.Message,
+		&req.ID, &req.GithubUsername, &req.Email, &req.DisplayName, &req.Batch, &req.Course, &req.Message,
 		&req.Status, &req.AdminNotes, &req.ReviewedAt, &req.CreatedAt,
 	)
 	if err != nil {
