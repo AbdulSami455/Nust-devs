@@ -25,12 +25,12 @@ type Developer struct {
 	PRContributions         int        `json:"pr_contributions"`
 	IssueContributions      int        `json:"issue_contributions"`
 	ReviewContributions     int        `json:"review_contributions"`
-	ContributionPeriodStart *string  `json:"contribution_period_start,omitempty"`
-	ContributionPeriodEnd   *string  `json:"contribution_period_end,omitempty"`
+	ContributionPeriodStart *string    `json:"contribution_period_start,omitempty"`
+	ContributionPeriodEnd   *string    `json:"contribution_period_end,omitempty"`
 	CurrentStreak           int        `json:"current_streak"`
-	LongestStreak            int        `json:"longest_streak"`
+	LongestStreak           int        `json:"longest_streak"`
 	StreakMultiplier        float64    `json:"streak_multiplier"`
-	XP                       int        `json:"xp"`
+	XP                      int        `json:"xp"`
 	PowerLevel              int        `json:"power_level"`
 	VerificationStatus      string     `json:"verification_status"`
 	LastSyncedAt            *time.Time `json:"last_synced_at,omitempty"`
@@ -184,8 +184,8 @@ type SparkPoint struct {
 }
 
 type StreakSummary struct {
-	DevsOn7PlusStreak  int `json:"devs_on_7plus_streak"`
-	DevsOn30PlusStreak int `json:"devs_on_30plus_streak"`
+	DevsOn7PlusStreak   int `json:"devs_on_7plus_streak"`
+	DevsOn30PlusStreak  int `json:"devs_on_30plus_streak"`
 	LongestActiveStreak int `json:"longest_active_streak"`
 }
 

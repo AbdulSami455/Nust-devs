@@ -202,6 +202,8 @@ export default function DashboardPage() {
                     <TableHead>GitHub</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Name</TableHead>
+                    <TableHead>Batch</TableHead>
+                    <TableHead>Course</TableHead>
                     <TableHead>Message</TableHead>
                     <TableHead>Submitted</TableHead>
                     <TableHead />
@@ -213,6 +215,8 @@ export default function DashboardPage() {
                       <TableCell className="font-mono font-medium">@{req.github_username}</TableCell>
                       <TableCell className="text-muted-foreground">{req.email || "—"}</TableCell>
                       <TableCell>{req.display_name || "—"}</TableCell>
+                      <TableCell>{req.batch || "—"}</TableCell>
+                      <TableCell>{req.course || "—"}</TableCell>
                       <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">
                         {req.message || "—"}
                       </TableCell>
