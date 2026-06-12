@@ -3,20 +3,24 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strings"
 
 	"github.com/abdulsami/nust-devs/internal/githubutil"
 	"github.com/abdulsami/nust-devs/internal/models"
 	"github.com/abdulsami/nust-devs/internal/repository"
+	"github.com/abdulsami/nust-devs/internal/worker"
+	"github.com/hibiken/asynq"
 )
 
 type DeveloperHandler struct {
-	devs *repository.DeveloperRepo
+	devs  *repository.DeveloperRepo
+	asynq *asynq.Client
 }
 
-func NewDeveloperHandler(devs *repository.DeveloperRepo) *DeveloperHandler {
-	return &DeveloperHandler{devs: devs}
+func NewDeveloperHandler(devs *repository.DeveloperRepo, asynqClient *asynq.Client) *DeveloperHandler {
+	return &DeveloperHandler{devs: devs, asynq: asynqClient}
 }
 
 func (h *DeveloperHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -47,6 +51,14 @@ func (h *DeveloperHandler) Create(w http.ResponseWriter, r *http.Request) {
 		}
 		writeError(w, http.StatusInternalServerError, "could not create developer")
 		return
+	}
+	if h.asynq != nil {
+		task, err := worker.NewSyncDeveloperTask(dev.ID, dev.GithubUsername)
+		if err != nil {
+			slog.Warn("failed to build developer sync task", "developer", dev.GithubUsername, "err", err)
+		} else if _, err := h.asynq.Enqueue(task); err != nil {
+			slog.Warn("failed to enqueue initial developer sync", "developer", dev.GithubUsername, "err", err)
+		}
 	}
 	writeJSON(w, http.StatusCreated, dev)
 }

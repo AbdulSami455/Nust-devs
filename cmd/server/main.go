@@ -49,7 +49,7 @@ func main() {
 	seedAdmin(context.Background(), adminRepo, cfg)
 
 	authH := handler.NewAuthHandler(adminRepo, cfg.JWTSecret)
-	devH := handler.NewDeveloperHandler(devRepo)
+	devH := handler.NewDeveloperHandler(devRepo, asynqClient)
 	syncH := handler.NewSyncHandler(devRepo, asynqClient, ghClient)
 	pubH := handler.NewPublicHandler(statsRepo, redisCach)
 	reqH := handler.NewProfileRequestHandler(requestRepo, devRepo, asynqClient)
