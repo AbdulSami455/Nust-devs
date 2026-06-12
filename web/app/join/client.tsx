@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
+import { ArrowLeft, CheckCircle2, GitPullRequest, GraduationCap } from "lucide-react";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -76,12 +78,16 @@ export function JoinClient() {
   if (submitted) {
     return (
       <div className="mx-auto max-w-lg px-4 py-16 text-center sm:px-6">
-        <h1 className="text-2xl font-bold">Request received</h1>
-        <p className="mt-3 text-muted-foreground">
+        <div className="mx-auto mb-5 flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <CheckCircle2 className="size-6" />
+        </div>
+        <h1 className="text-2xl font-semibold tracking-tight">Request received</h1>
+        <p className="mt-3 leading-6 text-muted-foreground">
           An admin will review your profile request. Once approved, your GitHub stats will appear on
           NUST Devs.
         </p>
-        <Link href="/" className="mt-6 inline-block text-primary hover:underline">
+        <Link href="/" className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline">
+          <ArrowLeft className="size-4" />
           Back to home
         </Link>
       </div>
@@ -89,111 +95,145 @@ export function JoinClient() {
   }
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-10 sm:px-6 sm:py-14">
-      <Badge variant="secondary" className="mb-4">
-        NUST developer community
-      </Badge>
-      <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Join NUST Devs</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Submit your GitHub username for admin approval. Each profile can only be listed once.
-      </p>
-
-      <form onSubmit={handleSubmit} className="mt-8 space-y-5">
-        <div className="space-y-2">
-          <Label htmlFor="username">GitHub username</Label>
-          <div className="flex gap-2">
-            <Input
-              id="username"
-              required
-              placeholder="octocat"
-              value={form.github_username}
-              onChange={(e) => {
-                setForm((f) => ({ ...f, github_username: e.target.value }));
-                setAvailability(null);
-              }}
-              onBlur={checkUsername}
+    <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:px-6 sm:py-14 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
+      <aside className="lg:sticky lg:top-24">
+        <Badge variant="secondary" className="mb-5 gap-2 rounded-full px-3 py-1">
+          <GraduationCap className="size-3.5" />
+          NUST developer community
+        </Badge>
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Join NUST Devs</h1>
+        <p className="mt-4 max-w-md text-sm leading-6 text-muted-foreground">
+          Submit your GitHub profile for review. Academic details are optional, but they help admins
+          recognize batches and departments more quickly.
+        </p>
+        <div className="mt-8 hidden rounded-lg border bg-card p-5 lg:block">
+          <div className="flex items-center gap-3">
+            <Image
+              src="/nust-logo.svg"
+              alt="NUST"
+              width={44}
+              height={44}
+              className="size-11 rounded-full ring-1 ring-border"
             />
-            <Button type="button" variant="outline" onClick={checkUsername} disabled={checking}>
-              {checking ? "…" : "Check"}
-            </Button>
+            <div>
+              <p className="font-medium">Reviewed before publishing</p>
+              <p className="text-sm text-muted-foreground">Each profile appears after admin approval.</p>
+            </div>
           </div>
-          {availability && (
-            <p
-              className={`text-xs ${availability.available ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}
-            >
-              {availability.available
-                ? `Available as @${availability.username ?? form.github_username}`
-                : availability.reason === "already registered"
-                  ? "This profile is already on NUST Devs."
-                  : availability.reason === "request pending"
-                    ? "A pending request already exists for this username."
-                    : "Invalid GitHub username."}
-            </p>
+        </div>
+      </aside>
+
+      <form onSubmit={handleSubmit} className="bento-card space-y-6">
+        <section className="space-y-4">
+          <div className="flex items-center gap-2">
+            <GitPullRequest className="size-4 text-primary" />
+            <h2 className="text-base font-semibold">GitHub identity</h2>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="username">GitHub username</Label>
+            <div className="flex gap-2">
+              <Input
+                id="username"
+                required
+                placeholder="octocat"
+                value={form.github_username}
+                onChange={(e) => {
+                  setForm((f) => ({ ...f, github_username: e.target.value }));
+                  setAvailability(null);
+                }}
+                onBlur={checkUsername}
+              />
+              <Button type="button" variant="outline" onClick={checkUsername} disabled={checking}>
+                {checking ? "…" : "Check"}
+              </Button>
+            </div>
+            {availability && (
+              <p
+                className={`text-xs ${availability.available ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}
+              >
+                {availability.available
+                  ? `Available as @${availability.username ?? form.github_username}`
+                  : availability.reason === "already registered"
+                    ? "This profile is already on NUST Devs."
+                    : availability.reason === "request pending"
+                      ? "A pending request already exists for this username."
+                      : "Invalid GitHub username."}
+              </p>
+            )}
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="email">NUST email (optional)</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="name@nust.edu.pk"
+                value={form.email}
+                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="display">Display name (optional)</Label>
+              <Input
+                id="display"
+                placeholder="Name shown to admins"
+                value={form.display_name}
+                onChange={(e) => setForm((f) => ({ ...f, display_name: e.target.value }))}
+              />
+            </div>
+          </div>
+        </section>
+
+        <section className="space-y-4 border-t pt-6">
+          <div className="flex items-center gap-2">
+            <GraduationCap className="size-4 text-primary" />
+            <h2 className="text-base font-semibold">Academic details</h2>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="batch">Batch (optional)</Label>
+              <Input
+                id="batch"
+                placeholder="e.g. 2024"
+                value={form.batch}
+                onChange={(e) => setForm((f) => ({ ...f, batch: e.target.value }))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="course">Course (optional)</Label>
+              <select
+                id="course"
+                value={form.course}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, course: e.target.value, other_course: "" }))
+                }
+                className="h-8 w-full rounded-lg border border-input bg-background px-2.5 py-1 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
+                <option value="">Select course</option>
+                {courseOptions.map((course) => (
+                  <option key={course} value={course}>
+                    {course}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {form.course === "Other" && (
+            <div className="space-y-2">
+              <Label htmlFor="other-course">Other course (optional)</Label>
+              <Input
+                id="other-course"
+                placeholder="Enter course"
+                value={form.other_course}
+                onChange={(e) => setForm((f) => ({ ...f, other_course: e.target.value }))}
+              />
+            </div>
           )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="email">NUST email (optional)</Label>
-          <Input
-            id="email"
-            type="email"
-            placeholder="name@nust.edu.pk"
-            value={form.email}
-            onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="display">Display name (optional)</Label>
-          <Input
-            id="display"
-            value={form.display_name}
-            onChange={(e) => setForm((f) => ({ ...f, display_name: e.target.value }))}
-          />
-        </div>
-
-        <div className="grid gap-5 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="batch">Batch (optional)</Label>
-            <Input
-              id="batch"
-              placeholder="e.g. 2024"
-              value={form.batch}
-              onChange={(e) => setForm((f) => ({ ...f, batch: e.target.value }))}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="course">Course (optional)</Label>
-            <select
-              id="course"
-              value={form.course}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, course: e.target.value, other_course: "" }))
-              }
-              className="h-8 w-full rounded-lg border border-input bg-background px-2.5 py-1 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-            >
-              <option value="">Select course</option>
-              {courseOptions.map((course) => (
-                <option key={course} value={course}>
-                  {course}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {form.course === "Other" && (
-          <div className="space-y-2">
-            <Label htmlFor="other-course">Other course (optional)</Label>
-            <Input
-              id="other-course"
-              placeholder="Enter course"
-              value={form.other_course}
-              onChange={(e) => setForm((f) => ({ ...f, other_course: e.target.value }))}
-            />
-          </div>
-        )}
+        </section>
 
         <div className="space-y-2">
           <Label htmlFor="message">Note for admin (optional)</Label>
