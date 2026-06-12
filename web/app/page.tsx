@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, BarChart3, GitPullRequest, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, GitPullRequest, ShieldCheck } from "lucide-react";
 import {
   api,
   type Developer,
@@ -126,32 +126,6 @@ export default function HomePage() {
             </div>
           </div>
         </div>
-      </section>
-
-      <section className="mb-10 grid gap-4 md:grid-cols-3">
-        {[
-          {
-            icon: BarChart3,
-            title: "Measured activity",
-            text: "Scores use synced GitHub profile, repository, and contribution data.",
-          },
-          {
-            icon: Sparkles,
-            title: "Project discovery",
-            text: "Find original projects, fast-growing repos, and active contributors.",
-          },
-          {
-            icon: ShieldCheck,
-            title: "Admin reviewed",
-            text: "Join requests are reviewed before profiles enter the public index.",
-          },
-        ].map(({ icon: Icon, title, text }) => (
-          <div key={title} className="bento-card">
-            <Icon className="size-5 text-primary" />
-            <h2 className="mt-4 text-base font-semibold">{title}</h2>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">{text}</p>
-          </div>
-        ))}
       </section>
 
       <section className="mb-10">
