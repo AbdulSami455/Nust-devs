@@ -3,39 +3,39 @@ package models
 import "time"
 
 type Developer struct {
-	ID                 string     `json:"id"`
-	GithubUsername     string     `json:"github_username"`
-	Email              *string    `json:"email,omitempty"`
-	DisplayName        *string    `json:"display_name,omitempty"`
-	Notes              *string    `json:"notes,omitempty"`
-	AvatarURL          *string    `json:"avatar_url,omitempty"`
-	Bio                *string    `json:"bio,omitempty"`
-	Location           *string    `json:"location,omitempty"`
-	Company            *string    `json:"company,omitempty"`
-	Website            *string    `json:"website,omitempty"`
-	Followers          int        `json:"followers"`
-	Following          int        `json:"following"`
-	PublicRepos        int        `json:"public_repos"`
-	TotalStars         int        `json:"total_stars"`
-	ActivityScore      float64    `json:"activity_score"`
-	BuilderScore       float64    `json:"builder_score"`
-	ContributorScore   float64    `json:"contributor_score"`
-	ReviewerScore      float64    `json:"reviewer_score"`
-	CommunityScore     float64    `json:"community_score"`
-	PRContributions    int        `json:"pr_contributions"`
-	IssueContributions int        `json:"issue_contributions"`
-	ReviewContributions int       `json:"review_contributions"`
+	ID                      string     `json:"id"`
+	GithubUsername          string     `json:"github_username"`
+	Email                   *string    `json:"email,omitempty"`
+	DisplayName             *string    `json:"display_name,omitempty"`
+	Notes                   *string    `json:"notes,omitempty"`
+	AvatarURL               *string    `json:"avatar_url,omitempty"`
+	Bio                     *string    `json:"bio,omitempty"`
+	Location                *string    `json:"location,omitempty"`
+	Company                 *string    `json:"company,omitempty"`
+	Website                 *string    `json:"website,omitempty"`
+	Followers               int        `json:"followers"`
+	Following               int        `json:"following"`
+	PublicRepos             int        `json:"public_repos"`
+	TotalStars              int        `json:"total_stars"`
+	ActivityScore           float64    `json:"activity_score"`
+	BuilderScore            float64    `json:"builder_score"`
+	ContributorScore        float64    `json:"contributor_score"`
+	ReviewerScore           float64    `json:"reviewer_score"`
+	CommunityScore          float64    `json:"community_score"`
+	PRContributions         int        `json:"pr_contributions"`
+	IssueContributions      int        `json:"issue_contributions"`
+	ReviewContributions     int        `json:"review_contributions"`
 	ContributionPeriodStart *string  `json:"contribution_period_start,omitempty"`
 	ContributionPeriodEnd   *string  `json:"contribution_period_end,omitempty"`
 	CurrentStreak           int        `json:"current_streak"`
-	LongestStreak           int        `json:"longest_streak"`
+	LongestStreak            int        `json:"longest_streak"`
 	StreakMultiplier        float64    `json:"streak_multiplier"`
-	XP                      int        `json:"xp"`
+	XP                       int        `json:"xp"`
 	PowerLevel              int        `json:"power_level"`
 	VerificationStatus      string     `json:"verification_status"`
-	LastSyncedAt       *time.Time `json:"last_synced_at,omitempty"`
-	CreatedAt          time.Time  `json:"created_at"`
-	UpdatedAt          time.Time  `json:"updated_at"`
+	LastSyncedAt            *time.Time `json:"last_synced_at,omitempty"`
+	CreatedAt               time.Time  `json:"created_at"`
+	UpdatedAt               time.Time  `json:"updated_at"`
 }
 
 type AdminUser struct {
@@ -63,6 +63,8 @@ type DeveloperRequest struct {
 	GithubUsername string     `json:"github_username"`
 	Email          *string    `json:"email,omitempty"`
 	DisplayName    *string    `json:"display_name,omitempty"`
+	Batch          *string    `json:"batch,omitempty"`
+	Course         *string    `json:"course,omitempty"`
 	Message        *string    `json:"message,omitempty"`
 	Status         string     `json:"status"`
 	AdminNotes     *string    `json:"admin_notes,omitempty"`
@@ -74,6 +76,8 @@ type SubmitProfileRequestInput struct {
 	GithubUsername string  `json:"github_username"`
 	Email          *string `json:"email,omitempty"`
 	DisplayName    *string `json:"display_name,omitempty"`
+	Batch          *string `json:"batch,omitempty"`
+	Course         *string `json:"course,omitempty"`
 	Message        *string `json:"message,omitempty"`
 }
 

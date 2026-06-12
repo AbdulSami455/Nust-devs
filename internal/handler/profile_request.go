@@ -42,6 +42,8 @@ func (h *ProfileRequestHandler) Submit(w http.ResponseWriter, r *http.Request) {
 	in.GithubUsername = username
 	in.Email = optionalString(in.Email)
 	in.DisplayName = optionalString(in.DisplayName)
+	in.Batch = optionalString(in.Batch)
+	in.Course = optionalString(in.Course)
 	in.Message = optionalString(in.Message)
 
 	req, err := h.requests.Create(r.Context(), in)
@@ -126,6 +128,7 @@ func (h *ProfileRequestHandler) Approve(w http.ResponseWriter, r *http.Request) 
 	if in.AdminNotes != nil {
 		notes = *in.AdminNotes
 	}
+	notes = appendRequestDetails(notes, req.Batch, req.Course)
 	dev, err := h.devs.Create(r.Context(), models.CreateDeveloperInput{
 		GithubUsername: req.GithubUsername,
 		Email:          req.Email,
@@ -180,4 +183,18 @@ func (h *ProfileRequestHandler) Reject(w http.ResponseWriter, r *http.Request) {
 
 func strPtr(s string) *string {
 	return &s
+}
+
+func appendRequestDetails(notes string, batch, course *string) string {
+	var details []string
+	if batch != nil {
+		details = append(details, "Batch: "+*batch)
+	}
+	if course != nil {
+		details = append(details, "Course: "+*course)
+	}
+	if len(details) == 0 {
+		return notes
+	}
+	return notes + " (" + strings.Join(details, ", ") + ")"
 }
