@@ -56,10 +56,41 @@ export default function DashboardPage() {
   }, [router]);
 
   useEffect(() => {
-    fetchDevelopers();
-    api.admin.sync.status().then((s) => setSyncStatus(s as SyncStatus)).catch(() => {});
-    api.admin.profileRequests.list("pending").then(setPendingRequests).catch(() => {});
-  }, [fetchDevelopers]);
+    let cancelled = false;
+
+    api.developers
+      .list()
+      .then((data) => {
+        if (!cancelled) setDevelopers(data);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        if (err instanceof Error && err.message === "HTTP 401") {
+          router.push("/admin");
+        } else {
+          toast.error("Failed to load developers");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    api.admin.sync
+      .status()
+      .then((s) => {
+        if (!cancelled) setSyncStatus(s as SyncStatus);
+      })
+      .catch(() => {});
+    api.admin.profileRequests
+      .list("pending")
+      .then((requests) => {
+        if (!cancelled) setPendingRequests(requests);
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   async function handleApproveRequest(id: string, username: string) {
     try {
