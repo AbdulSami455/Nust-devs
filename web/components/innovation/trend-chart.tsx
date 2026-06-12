@@ -33,8 +33,8 @@ export function TrendChart({
   return (
     <div className="bento-card min-w-0">
       <div className="mb-4">
-        <h3 className="font-semibold">{title}</h3>
-        {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
+        <h3 className="text-base font-semibold tracking-tight">{title}</h3>
+        {subtitle && <p className="mt-1 text-sm leading-5 text-muted-foreground">{subtitle}</p>}
       </div>
       {loading ? (
         <Skeleton className="w-full" style={{ height: CHART_HEIGHT }} />
@@ -47,29 +47,32 @@ export function TrendChart({
         </div>
       ) : (
         <ChartContainer height={CHART_HEIGHT}>
-          <AreaChart data={chartData} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
+          <AreaChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor={color} stopOpacity={0.35} />
                 <stop offset="100%" stopColor={color} stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-border/40" vertical={false} />
+            <CartesianGrid strokeDasharray="4 4" className="stroke-border/55" vertical={false} />
             <XAxis
               dataKey="label"
-              tick={{ fontSize: 10 }}
+              tick={{ fontSize: 12, fontWeight: 500 }}
               tickLine={false}
               axisLine={false}
               interval="preserveStartEnd"
             />
-            <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} width={36} />
+            <YAxis tick={{ fontSize: 12, fontWeight: 500 }} tickLine={false} axisLine={false} width={42} />
             <Tooltip
+              cursor={{ stroke: "var(--border)", strokeWidth: 1 }}
               contentStyle={{
                 background: "var(--popover)",
                 border: "1px solid var(--border)",
                 borderRadius: "8px",
                 fontSize: "12px",
               }}
+              wrapperClassName="chart-tooltip"
+              formatter={(value) => [Number(value).toLocaleString(), title]}
             />
             <Area
               type="monotone"

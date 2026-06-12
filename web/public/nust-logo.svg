@@ -1,0 +1,18 @@
+<svg width="1200" height="1200" viewBox="0 0 1200 1200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="1200" rx="600" fill="#0789B2"/>
+  <circle cx="600" cy="600" r="557" stroke="#02121A" stroke-width="38"/>
+  <circle cx="600" cy="600" r="415" fill="#02121A"/>
+  <path d="M600 205L650 495H550L600 205Z" fill="#0789B2"/>
+  <path d="M512 500L323 314L494 448L550 495L512 500Z" fill="#0789B2"/>
+  <path d="M688 500L877 314L706 448L650 495L688 500Z" fill="#0789B2"/>
+  <path d="M479 552L235 594H469L479 552Z" fill="#0789B2"/>
+  <path d="M721 552L965 594H731L721 552Z" fill="#0789B2"/>
+  <path d="M514 600C514 552.5 552.5 514 600 514C647.5 514 686 552.5 686 600H514Z" fill="#0789B2"/>
+  <path d="M235 626H965V650C902 834 756 965 600 965C444 965 298 834 235 650V626Z" fill="#0789B2"/>
+  <path d="M497 681C536 667 574 672 595 692V843C566 825 532 821 497 835V681Z" fill="#02121A"/>
+  <path d="M704 681C665 667 627 672 606 692V843C635 825 669 821 704 835V681Z" fill="#02121A"/>
+  <path d="M600 858C552 830 504 834 457 858" stroke="#02121A" stroke-width="18" stroke-linecap="round"/>
+  <path d="M600 858C648 830 696 834 743 858" stroke="#02121A" stroke-width="18" stroke-linecap="round"/>
+  <text x="600" y="160" text-anchor="middle" font-family="Georgia, serif" font-size="76" font-weight="700" fill="white" letter-spacing="8">NUST</text>
+  <text x="600" y="1080" text-anchor="middle" font-family="Georgia, serif" font-size="68" font-weight="700" fill="white" letter-spacing="10">PAKISTAN</text>
+</svg>
