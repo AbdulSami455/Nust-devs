@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { api, type InnovationGraph, type ActivityEvent } from "@/lib/api";
 import { TrendChart } from "@/components/innovation/trend-chart";
 import { BreakdownChart, ContributorsChart } from "@/components/innovation/breakdown-chart";
@@ -21,7 +20,6 @@ export function InnovationClient() {
   const [loadingActivity, setLoadingActivity] = useState(true);
 
   useEffect(() => {
-    setLoadingGraph(true);
     api.public
       .innovationGraph(granularity, granularity === "quarterly" ? 8 : 12)
       .then(setGraph)
@@ -45,16 +43,7 @@ export function InnovationClient() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">NUST Innovation Graph</h1>
             <p className="mt-2 max-w-2xl text-muted-foreground">
-              Quarterly trends and live activity from NUST developers on GitHub — inspired by the{" "}
-              <a
-                href="https://lebhub.xyz/innovation"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:underline"
-              >
-                Lebanon Innovation Graph
-              </a>
-              .
+              Quarterly trends and live activity from NUST developers on GitHub.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -94,7 +83,10 @@ export function InnovationClient() {
               <button
                 key={g}
                 type="button"
-                onClick={() => setGranularity(g)}
+                onClick={() => {
+                  setLoadingGraph(true);
+                  setGranularity(g);
+                }}
                 className={cn(
                   "rounded-full px-3 py-1 text-xs font-medium transition-colors",
                   granularity === g ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-muted/80"
@@ -176,9 +168,9 @@ export function InnovationClient() {
 
           <p className="mt-8 text-center text-sm text-muted-foreground">
             License data populates after the next developer sync.{" "}
-            <Link href="/stats" className="text-primary hover:underline">
+            <a href="/stats" className="text-primary hover:underline">
               View platform stats
-            </Link>
+            </a>
           </p>
         </>
       )}
