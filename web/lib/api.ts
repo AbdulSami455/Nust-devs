@@ -213,6 +213,8 @@ export interface DeveloperRequest {
   github_username: string;
   email?: string;
   display_name?: string;
+  batch?: string;
+  course?: string;
   message?: string;
   status: "pending" | "approved" | "rejected";
   admin_notes?: string;
@@ -360,6 +362,8 @@ export const api = {
       github_username: string;
       email?: string;
       display_name?: string;
+      batch?: string;
+      course?: string;
       message?: string;
     }) =>
       request<DeveloperRequest>("/api/v1/profile-requests", {

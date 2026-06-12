@@ -9,11 +9,16 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
+const courseOptions = ["SE", "CS", "AI", "DS", "EE", "Other"];
+
 export function JoinClient() {
   const [form, setForm] = useState({
     github_username: "",
     email: "",
     display_name: "",
+    batch: "",
+    course: "",
+    other_course: "",
     message: "",
   });
   const [checking, setChecking] = useState(false);
@@ -47,12 +52,16 @@ export function JoinClient() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const course =
+      form.course === "Other" ? form.other_course.trim() || "Other" : form.course.trim();
     setSubmitting(true);
     try {
       await api.public.submitProfileRequest({
         github_username: form.github_username.trim(),
         ...(form.email.trim() ? { email: form.email.trim() } : {}),
         ...(form.display_name.trim() ? { display_name: form.display_name.trim() } : {}),
+        ...(form.batch.trim() ? { batch: form.batch.trim() } : {}),
+        ...(course ? { course } : {}),
         ...(form.message.trim() ? { message: form.message.trim() } : {}),
       });
       setSubmitted(true);
@@ -142,6 +151,49 @@ export function JoinClient() {
             onChange={(e) => setForm((f) => ({ ...f, display_name: e.target.value }))}
           />
         </div>
+
+        <div className="grid gap-5 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="batch">Batch (optional)</Label>
+            <Input
+              id="batch"
+              placeholder="e.g. 2024"
+              value={form.batch}
+              onChange={(e) => setForm((f) => ({ ...f, batch: e.target.value }))}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="course">Course (optional)</Label>
+            <select
+              id="course"
+              value={form.course}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, course: e.target.value, other_course: "" }))
+              }
+              className="h-8 w-full rounded-lg border border-input bg-background px-2.5 py-1 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+            >
+              <option value="">Select course</option>
+              {courseOptions.map((course) => (
+                <option key={course} value={course}>
+                  {course}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {form.course === "Other" && (
+          <div className="space-y-2">
+            <Label htmlFor="other-course">Other course (optional)</Label>
+            <Input
+              id="other-course"
+              placeholder="Enter course"
+              value={form.other_course}
+              onChange={(e) => setForm((f) => ({ ...f, other_course: e.target.value }))}
+            />
+          </div>
+        )}
 
         <div className="space-y-2">
           <Label htmlFor="message">Note for admin (optional)</Label>
