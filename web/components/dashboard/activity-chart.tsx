@@ -29,8 +29,8 @@ export function ActivityChart({
   return (
     <div className="bento-card col-span-full min-w-0 lg:col-span-2 lg:row-span-2">
       <div className="mb-4">
-        <h3 className="font-semibold">Community Pulse</h3>
-        <p className="text-sm text-muted-foreground">Contributions across all tracked developers (30 days)</p>
+        <h3 className="text-base font-semibold tracking-tight">Community Pulse</h3>
+        <p className="text-sm leading-6 text-muted-foreground">Contributions across all tracked developers over the last 30 days.</p>
       </div>
       {loading ? (
         <Skeleton className="w-full" style={{ height: CHART_HEIGHT }} />
@@ -43,29 +43,32 @@ export function ActivityChart({
         </div>
       ) : (
         <ChartContainer height={CHART_HEIGHT}>
-          <AreaChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+          <AreaChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="pulse" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.4} />
                 <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-border/40" vertical={false} />
+            <CartesianGrid strokeDasharray="4 4" className="stroke-border/55" vertical={false} />
             <XAxis
               dataKey="date"
-              tick={{ fontSize: 11 }}
+              tick={{ fontSize: 12, fontWeight: 500 }}
               tickLine={false}
               axisLine={false}
               className="text-muted-foreground"
             />
-            <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} width={32} />
+            <YAxis tick={{ fontSize: 12, fontWeight: 500 }} tickLine={false} axisLine={false} width={40} />
             <Tooltip
+              cursor={{ stroke: "var(--border)", strokeWidth: 1 }}
               contentStyle={{
                 background: "var(--popover)",
                 border: "1px solid var(--border)",
                 borderRadius: "8px",
                 fontSize: "12px",
               }}
+              wrapperClassName="chart-tooltip"
+              formatter={(value) => [Number(value).toLocaleString(), "Contributions"]}
             />
             <Area
               type="monotone"

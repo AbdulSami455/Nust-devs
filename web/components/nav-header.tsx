@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CommandMenu } from "@/components/command-menu";
@@ -24,9 +25,14 @@ export function NavHeader() {
     <header className="glass-nav sticky top-0 z-50">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
         <Link href="/" className="flex items-center gap-2 shrink-0">
-          <div className="flex size-8 items-center justify-center rounded-lg border border-border bg-card text-xs font-bold text-primary shadow-sm">
-            N
-          </div>
+          <Image
+            src="/nust-logo.svg"
+            alt="NUST"
+            width={34}
+            height={34}
+            priority
+            className="size-8 rounded-full ring-1 ring-border/70"
+          />
           <span className="hidden font-semibold tracking-tight sm:inline">NUST Devs</span>
         </Link>
 

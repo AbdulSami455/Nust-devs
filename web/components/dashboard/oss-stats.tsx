@@ -24,10 +24,10 @@ export function OSSStatsPanel({
     <div className="bento-card">
       <div className="mb-4 flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+          <h2 className="text-base font-semibold tracking-tight">
             Open Source
           </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
             Original repos, forks, and community impact from NUST developers.
           </p>
         </div>
@@ -38,12 +38,12 @@ export function OSSStatsPanel({
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {items.map(({ key, label }) => (
-          <div key={key} className="rounded-xl border bg-muted/30 px-3 py-3">
-            <p className="text-xs text-muted-foreground">{label}</p>
+          <div key={key} className="rounded-lg border bg-secondary/35 px-4 py-3">
+            <p className="text-xs font-medium text-muted-foreground">{label}</p>
             {loading ? (
               <Skeleton className="mt-2 h-7 w-12" />
             ) : (
-              <p className="mt-1 text-2xl font-bold tabular-nums">
+              <p className="mt-1 text-2xl font-semibold tabular-nums">
                 {(stats?.[key] ?? 0).toLocaleString()}
               </p>
             )}

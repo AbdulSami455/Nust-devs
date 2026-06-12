@@ -3,13 +3,24 @@
 import { useEffect, useState } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip,
-  PieChart, Pie, Cell, Legend,
+  PieChart, Pie, Cell, Legend, CartesianGrid,
 } from "recharts";
 import { api, type Overview, type LanguageStat, type Developer } from "@/lib/api";
 import { ChartContainer } from "@/components/charts/chart-container";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-const COLORS = ["#3b82f6","#10b981","#f59e0b","#ef4444","#8b5cf6","#06b6d4","#f97316","#ec4899","#14b8a6","#84cc16"];
+const COLORS = [
+  "var(--chart-1)",
+  "var(--chart-2)",
+  "var(--chart-3)",
+  "var(--chart-4)",
+  "var(--chart-5)",
+  "oklch(0.6 0.08 248)",
+  "oklch(0.62 0.09 140)",
+  "oklch(0.63 0.1 330)",
+  "oklch(0.64 0.1 62)",
+  "oklch(0.58 0.08 205)",
+];
 
 export function StatsClient() {
   const [overview, setOverview]   = useState<Overview | null>(null);
@@ -51,7 +62,12 @@ export function StatsClient() {
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-8 space-y-8">
-      <h2 className="text-2xl font-bold">Platform Stats</h2>
+      <div>
+        <h2 className="text-2xl font-semibold tracking-tight">Platform Stats</h2>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">
+          Aggregated GitHub activity, language usage, and developer rankings across tracked profiles.
+        </p>
+      </div>
 
       {/* Overview cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -78,11 +94,12 @@ export function StatsClient() {
           </CardHeader>
           <CardContent>
             <ChartContainer height={280}>
-              <BarChart data={devsChart} layout="vertical" margin={{ left: 16, right: 16 }}>
-                <XAxis type="number" tick={{ fontSize: 11 }} />
-                <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={90} />
-                <Tooltip />
-                <Bar dataKey="score" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+              <BarChart data={devsChart} layout="vertical" margin={{ left: 8, right: 16 }}>
+                <CartesianGrid strokeDasharray="4 4" className="stroke-border/55" horizontal={false} />
+                <XAxis type="number" tick={{ fontSize: 12, fontWeight: 500 }} tickLine={false} axisLine={false} />
+                <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fontWeight: 500 }} tickLine={false} axisLine={false} width={108} />
+                <Tooltip wrapperClassName="chart-tooltip" formatter={(value) => [Number(value).toLocaleString(), "Score"]} />
+                <Bar dataKey="score" fill="var(--chart-1)" radius={[0, 5, 5, 0]} />
               </BarChart>
             </ChartContainer>
           </CardContent>
@@ -96,13 +113,13 @@ export function StatsClient() {
           <CardContent>
             <ChartContainer height={280}>
               <PieChart>
-                <Pie data={langPie} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ name }) => name}>
+                <Pie data={langPie} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={94} labelLine={false} label={({ name }) => name}>
                   {langPie.map((entry, i) => (
                     <Cell key={i} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(v) => [`${v} repos`, "Repos"]} />
-                <Legend />
+                <Tooltip wrapperClassName="chart-tooltip" formatter={(v) => [`${v} repos`, "Repos"]} />
+                <Legend iconType="circle" />
               </PieChart>
             </ChartContainer>
           </CardContent>
@@ -115,11 +132,12 @@ export function StatsClient() {
           </CardHeader>
           <CardContent>
             <ChartContainer height={240}>
-              <BarChart data={langBar} margin={{ left: 8, right: 8 }}>
-                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip formatter={(v) => [`${v} MB`, "Code"]} />
-                <Bar dataKey="mb" radius={[4, 4, 0, 0]}>
+              <BarChart data={langBar} margin={{ left: 8, right: 12 }}>
+                <CartesianGrid strokeDasharray="4 4" className="stroke-border/55" vertical={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 12, fontWeight: 500 }} tickLine={false} axisLine={false} />
+                <YAxis tick={{ fontSize: 12, fontWeight: 500 }} tickLine={false} axisLine={false} width={42} />
+                <Tooltip wrapperClassName="chart-tooltip" formatter={(v) => [`${v} MB`, "Code"]} />
+                <Bar dataKey="mb" radius={[5, 5, 0, 0]}>
                   {langBar.map((_, i) => (
                     <Cell key={i} fill={COLORS[i % COLORS.length]} />
                   ))}
