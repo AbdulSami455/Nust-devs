@@ -392,3 +392,97 @@ export const api = {
       request<void>(`/api/v1/admin/developers/${id}`, { method: "DELETE" }),
   },
 };
+
+// ── AI ────────────────────────────────────────────────────────────────────────
+
+export interface DeveloperSummary {
+  developer_id: string;
+  headline: string;
+  summary: string;
+  strengths: string[];
+  model_version: string;
+  generated_at: string;
+}
+
+export interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+/** Fetch the cached AI summary for a developer. Returns null if unavailable. */
+export async function fetchDeveloperSummary(username: string): Promise<DeveloperSummary | null> {
+  try {
+    return await request<DeveloperSummary>(`/api/v1/developers/${username}/summary`);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Send a chat message and stream the response via SSE.
+ * Calls onToken for each text chunk, onDone when finished, onError on failure.
+ * Returns an AbortController so the caller can cancel.
+ */
+export function streamChat(
+  message: string,
+  history: ChatMessage[],
+  onToken: (token: string) => void,
+  onDone: () => void,
+  onError: (err: string) => void,
+): AbortController {
+  const controller = new AbortController();
+
+  (async () => {
+    let res: Response;
+    try {
+      res = await fetch(`${BASE}/api/v1/ai/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message, history }),
+        signal: controller.signal,
+      });
+    } catch (e: unknown) {
+      if ((e as { name?: string }).name !== "AbortError") onError("Connection failed");
+      return;
+    }
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      onError(body.error ?? `Error ${res.status}`);
+      return;
+    }
+
+    const reader = res.body?.getReader();
+    if (!reader) { onError("No response stream"); return; }
+
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? "";
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          const payload = line.slice(6);
+          if (payload === "{}") continue; // done event data
+          // Unescape JSON-encoded token
+          try {
+            const token = JSON.parse(`"${payload}"`);
+            onToken(token);
+          } catch {
+            onToken(payload);
+          }
+        } else if (line.startsWith("event: done")) {
+          onDone();
+          return;
+        }
+      }
+    }
+    onDone();
+  })();
+
+  return controller;
+}

@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { NavHeader } from "@/components/nav-header";
 import { MobileNav } from "@/components/layout/mobile-nav";
+import { ChatWidget } from "@/components/ai/chat-widget";
 
 export function SiteShell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
@@ -17,6 +18,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
       <NavHeader />
       <main>{children}</main>
       <MobileNav />
+      <ChatWidget />
     </div>
   );
 }
