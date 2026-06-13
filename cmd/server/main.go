@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/abdulsami/nust-devs/internal/ai"
 	"github.com/abdulsami/nust-devs/internal/cache"
 	"github.com/abdulsami/nust-devs/internal/config"
 	"github.com/abdulsami/nust-devs/internal/db"
@@ -54,10 +55,22 @@ func main() {
 	pubH := handler.NewPublicHandler(statsRepo, redisCach)
 	reqH := handler.NewProfileRequestHandler(requestRepo, devRepo, asynqClient)
 
+	aiChat, err := ai.NewChatService(context.Background(), cfg, statsRepo)
+	if err != nil {
+		slog.Error("ai setup failed", "err", err)
+		os.Exit(1)
+	}
+	aiSummary := ai.NewSummaryService(aiChat, pool, cfg.AIModel)
+	aiH := handler.NewAIHandler(aiChat, aiSummary, statsRepo, pool)
+
 	mux := http.NewServeMux()
 
 	// Health
 	mux.HandleFunc("GET /health", handler.Health)
+
+	// AI routes (public, rate-limited internally)
+	mux.HandleFunc("POST /api/v1/ai/chat", aiH.Chat)
+	mux.HandleFunc("GET /api/v1/developers/{username}/summary", aiH.GetDeveloperSummary)
 
 	// Public API
 	mux.HandleFunc("GET /api/v1/developers", pubH.ListDevelopers)
