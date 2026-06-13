@@ -3,6 +3,7 @@ package ai
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/google/uuid"
@@ -66,39 +67,34 @@ func (s *ChatService) RunStreaming(ctx context.Context, message string, history 
 	sessionID := uuid.NewString()
 	content := genai.NewContentFromText(formatMessageWithHistory(message, history), genai.RoleUser)
 
-	var sent int
+	// Non-streaming LLM mode so tool-call rounds complete correctly with OpenRouter.
+	var finalText string
 	for event, err := range s.runner.Run(ctx, "chat", sessionID, content, agent.RunConfig{
-		StreamingMode: agent.StreamingModeSSE,
+		StreamingMode: agent.StreamingModeNone,
 	}) {
 		if err != nil {
-			return err
+			slog.Warn("adk runner error", "err", err)
+			return fmt.Errorf("agent error: %w", err)
 		}
 		if event == nil || eventHasToolParts(event) {
 			continue
 		}
-		text := eventText(event)
-		if len(text) <= sent {
-			continue
-		}
-		delta := text[sent:]
-		sent = len(text)
-		for _, word := range strings.SplitAfter(delta, " ") {
-			select {
-			case ch <- word:
-			case <-ctx.Done():
-				return ctx.Err()
+		if event.IsFinalResponse() {
+			if text := strings.TrimSpace(eventText(event)); text != "" {
+				finalText = text
 			}
 		}
 	}
 
-	if sent == 0 {
-		fallback := SanitizeOutput("I don't have enough data to answer that right now.")
-		for _, word := range strings.SplitAfter(fallback, " ") {
-			select {
-			case ch <- word:
-			case <-ctx.Done():
-				return ctx.Err()
-			}
+	if finalText == "" {
+		finalText = "I couldn't retrieve developer data right now. Please try again."
+	}
+	finalText = SanitizeOutput(finalText)
+	for _, word := range strings.SplitAfter(finalText, " ") {
+		select {
+		case ch <- word:
+		case <-ctx.Done():
+			return ctx.Err()
 		}
 	}
 	return nil
@@ -116,8 +112,10 @@ func (s *ChatService) RunSync(ctx context.Context, prompt string) (string, error
 		if err != nil {
 			return "", err
 		}
-		if event != nil && event.IsFinalResponse() {
-			finalText = eventText(event)
+		if event != nil && event.IsFinalResponse() && !eventHasToolParts(event) {
+			if text := strings.TrimSpace(eventText(event)); text != "" {
+				finalText = text
+			}
 		}
 	}
 	if finalText == "" {

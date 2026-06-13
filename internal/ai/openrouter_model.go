@@ -37,8 +37,6 @@ func (m *openRouterModel) Name() string { return m.name }
 
 func (m *openRouterModel) GenerateContent(ctx context.Context, req *adkmodel.LLMRequest, stream bool) iter.Seq2[*adkmodel.LLMResponse, error] {
 	msgs, tools := convertGenaiRequest(req)
-	// OpenRouter tool calls arrive in a single message; streaming only yields text
-	// deltas and would drop tool_calls, so never stream when tools are attached.
 	if len(tools) > 0 {
 		stream = false
 	}
