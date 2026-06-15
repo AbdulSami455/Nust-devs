@@ -1,12 +1,14 @@
 package handler
 
 import (
+	"context"
 	"net/http"
 	"time"
 
+	gh "github.com/abdulsami/nust-devs/internal/github"
+	"github.com/abdulsami/nust-devs/internal/middleware"
 	"github.com/abdulsami/nust-devs/internal/repository"
 	"github.com/abdulsami/nust-devs/internal/worker"
-	gh "github.com/abdulsami/nust-devs/internal/github"
 	"github.com/hibiken/asynq"
 )
 
@@ -14,10 +16,11 @@ type SyncHandler struct {
 	devRepo  *repository.DeveloperRepo
 	client   *asynq.Client
 	ghClient *gh.Client
+	obs      *repository.ObservabilityRepo
 }
 
-func NewSyncHandler(devRepo *repository.DeveloperRepo, client *asynq.Client, ghClient *gh.Client) *SyncHandler {
-	return &SyncHandler{devRepo: devRepo, client: client, ghClient: ghClient}
+func NewSyncHandler(devRepo *repository.DeveloperRepo, client *asynq.Client, ghClient *gh.Client, obs *repository.ObservabilityRepo) *SyncHandler {
+	return &SyncHandler{devRepo: devRepo, client: client, ghClient: ghClient, obs: obs}
 }
 
 // TriggerSync enqueues a sync job for one developer (?id=<uuid>) or all developers.
@@ -35,6 +38,7 @@ func (h *SyncHandler) TriggerSync(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusInternalServerError, "could not enqueue sync")
 			return
 		}
+		h.logAdminAction(r, "sync.trigger", dev.ID, map[string]any{"github_username": dev.GithubUsername, "scope": "single"})
 		writeJSON(w, http.StatusAccepted, map[string]string{"queued": dev.GithubUsername})
 		return
 	}
@@ -51,6 +55,7 @@ func (h *SyncHandler) TriggerSync(w http.ResponseWriter, r *http.Request) {
 			queued++
 		}
 	}
+	h.logAdminAction(r, "sync.trigger", "", map[string]any{"scope": "all", "queued": queued})
 	writeJSON(w, http.StatusAccepted, map[string]int{"queued": queued})
 }
 
@@ -62,5 +67,25 @@ func (h *SyncHandler) SyncStatus(w http.ResponseWriter, r *http.Request) {
 			"remaining": remaining,
 			"reset_at":  resetAt.UTC().Format(time.RFC3339),
 		},
+	})
+}
+
+func (h *SyncHandler) logAdminAction(r *http.Request, action, resourceID string, metadata map[string]any) {
+	if h.obs == nil {
+		return
+	}
+	adminID, _ := middleware.AdminIDFromContext(r.Context())
+	go h.obs.InsertAuditLog(context.Background(), repository.AuditLogInput{
+		ActorType:    "admin",
+		ActorID:      adminID,
+		Action:       action,
+		ResourceType: "sync_job",
+		ResourceID:   resourceID,
+		Method:       r.Method,
+		Path:         r.URL.Path,
+		StatusCode:   http.StatusOK,
+		IP:           r.RemoteAddr,
+		UserAgent:    r.UserAgent(),
+		Metadata:     metadata,
 	})
 }

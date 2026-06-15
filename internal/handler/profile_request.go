@@ -1,12 +1,14 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"strings"
 
 	"github.com/abdulsami/nust-devs/internal/githubutil"
+	"github.com/abdulsami/nust-devs/internal/middleware"
 	"github.com/abdulsami/nust-devs/internal/models"
 	"github.com/abdulsami/nust-devs/internal/repository"
 	"github.com/abdulsami/nust-devs/internal/worker"
@@ -17,14 +19,16 @@ type ProfileRequestHandler struct {
 	requests *repository.RequestRepo
 	devs     *repository.DeveloperRepo
 	asynq    *asynq.Client
+	obs      *repository.ObservabilityRepo
 }
 
 func NewProfileRequestHandler(
 	requests *repository.RequestRepo,
 	devs *repository.DeveloperRepo,
 	asynqClient *asynq.Client,
+	obs *repository.ObservabilityRepo,
 ) *ProfileRequestHandler {
-	return &ProfileRequestHandler{requests: requests, devs: devs, asynq: asynqClient}
+	return &ProfileRequestHandler{requests: requests, devs: devs, asynq: asynqClient, obs: obs}
 }
 
 func (h *ProfileRequestHandler) Submit(w http.ResponseWriter, r *http.Request) {
@@ -58,6 +62,7 @@ func (h *ProfileRequestHandler) Submit(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	h.logRequestAction(r, "profile_request.submit", req.ID, map[string]any{"github_username": req.GithubUsername})
 	writeJSON(w, http.StatusCreated, req)
 }
 
@@ -161,6 +166,10 @@ func (h *ProfileRequestHandler) Approve(w http.ResponseWriter, r *http.Request) 
 		"request":   updated,
 		"developer": dev,
 	})
+	h.logAdminAction(r, "profile_request.approve", updated.ID, map[string]any{
+		"github_username": updated.GithubUsername,
+		"developer_id":    dev.ID,
+	})
 }
 
 func (h *ProfileRequestHandler) Reject(w http.ResponseWriter, r *http.Request) {
@@ -178,6 +187,7 @@ func (h *ProfileRequestHandler) Reject(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "could not reject request")
 		return
 	}
+	h.logAdminAction(r, "profile_request.reject", req.ID, map[string]any{"github_username": req.GithubUsername})
 	writeJSON(w, http.StatusOK, req)
 }
 
@@ -197,4 +207,42 @@ func appendRequestDetails(notes string, batch, course *string) string {
 		return notes
 	}
 	return notes + " (" + strings.Join(details, ", ") + ")"
+}
+
+func (h *ProfileRequestHandler) logRequestAction(r *http.Request, action, resourceID string, metadata map[string]any) {
+	if h.obs == nil {
+		return
+	}
+	go h.obs.InsertAuditLog(context.Background(), repository.AuditLogInput{
+		ActorType:    "public",
+		Action:       action,
+		ResourceType: "profile_request",
+		ResourceID:   resourceID,
+		Method:       r.Method,
+		Path:         r.URL.Path,
+		StatusCode:   http.StatusOK,
+		IP:           r.RemoteAddr,
+		UserAgent:    r.UserAgent(),
+		Metadata:     metadata,
+	})
+}
+
+func (h *ProfileRequestHandler) logAdminAction(r *http.Request, action, resourceID string, metadata map[string]any) {
+	if h.obs == nil {
+		return
+	}
+	adminID, _ := middleware.AdminIDFromContext(r.Context())
+	go h.obs.InsertAuditLog(context.Background(), repository.AuditLogInput{
+		ActorType:    "admin",
+		ActorID:      adminID,
+		Action:       action,
+		ResourceType: "profile_request",
+		ResourceID:   resourceID,
+		Method:       r.Method,
+		Path:         r.URL.Path,
+		StatusCode:   http.StatusOK,
+		IP:           r.RemoteAddr,
+		UserAgent:    r.UserAgent(),
+		Metadata:     metadata,
+	})
 }
