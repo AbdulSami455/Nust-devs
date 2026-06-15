@@ -18,8 +18,8 @@ import (
 // ── Rate limiter ──────────────────────────────────────────────────────────────
 
 type ipBucket struct {
-	count    int
-	resetAt  time.Time
+	count   int
+	resetAt time.Time
 }
 
 type rateLimiter struct {
@@ -158,7 +158,6 @@ func (h *AIHandler) Chat(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("X-Accel-Buffering", "no") // nginx: disable buffering
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	flusher, ok := w.(http.Flusher)
 	if !ok {

@@ -7,14 +7,16 @@ import (
 )
 
 type Config struct {
-	Port          string
-	DBUrl         string
-	RedisURL      string
-	JWTSecret     string
-	AdminEmail    string
-	AdminPassword string
-	OpenRouterKey string
-	AIModel       string
+	Port               string
+	DBUrl              string
+	RedisURL           string
+	JWTSecret          string
+	AdminEmail         string
+	AdminPassword      string
+	AllowedCORSOrigins []string
+	SecureCookies      bool
+	OpenRouterKey      string
+	AIModel            string
 }
 
 func Load() *Config {
@@ -25,6 +27,11 @@ func Load() *Config {
 		JWTSecret:     strings.TrimSpace(os.Getenv("JWT_SECRET")),
 		AdminEmail:    strings.ToLower(strings.TrimSpace(os.Getenv("ADMIN_EMAIL"))),
 		AdminPassword: os.Getenv("ADMIN_PASSWORD"),
+		AllowedCORSOrigins: splitCSV(getEnv(
+			"CORS_ALLOWED_ORIGINS",
+			"http://localhost:3000,http://127.0.0.1:3000",
+		)),
+		SecureCookies: getEnv("SECURE_COOKIES", "true") != "false",
 		OpenRouterKey: getEnv("OPENROUTER_API_KEY", ""),
 		AIModel:       getEnv("AI_MODEL", "openai/gpt-oss-120b:free"),
 	}
@@ -47,6 +54,14 @@ func (c *Config) ValidateServer() error {
 	if c.AdminPassword == "admin123" {
 		return fmt.Errorf("ADMIN_PASSWORD uses an unsafe default value")
 	}
+	if len(c.AllowedCORSOrigins) == 0 {
+		return fmt.Errorf("CORS_ALLOWED_ORIGINS must include at least one frontend origin")
+	}
+	for _, origin := range c.AllowedCORSOrigins {
+		if origin == "*" {
+			return fmt.Errorf("CORS_ALLOWED_ORIGINS cannot include wildcard origin")
+		}
+	}
 	return nil
 }
 
@@ -61,4 +76,16 @@ func getEnv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+func splitCSV(s string) []string {
+	parts := strings.Split(s, ",")
+	out := make([]string, 0, len(parts))
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part != "" {
+			out = append(out, part)
+		}
+	}
+	return out
 }

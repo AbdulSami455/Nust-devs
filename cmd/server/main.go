@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/abdulsami/nust-devs/internal/ai"
 	"github.com/abdulsami/nust-devs/internal/cache"
@@ -58,7 +59,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	authH := handler.NewAuthHandler(adminRepo, cfg.JWTSecret)
+	authH := handler.NewAuthHandler(adminRepo, cfg.JWTSecret, cfg.SecureCookies)
 	devH := handler.NewDeveloperHandler(devRepo, asynqClient)
 	syncH := handler.NewSyncHandler(devRepo, asynqClient, ghClient)
 	pubH := handler.NewPublicHandler(statsRepo, redisCach)
@@ -107,6 +108,7 @@ func main() {
 
 	// Admin auth (public)
 	mux.HandleFunc("POST /api/v1/admin/auth/login", authH.Login)
+	mux.HandleFunc("POST /api/v1/admin/auth/logout", authH.Logout)
 
 	// Admin protected
 	protected := http.NewServeMux()
@@ -128,8 +130,17 @@ func main() {
 	mux.Handle("/api/v1/admin/profile-requests", auth(protected))
 	mux.Handle("/api/v1/admin/profile-requests/", auth(protected))
 
+	server := &http.Server{
+		Addr:              ":" + cfg.Port,
+		Handler:           middleware.CORS(mux, cfg.AllowedCORSOrigins),
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      120 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
+
 	slog.Info("server starting", "port", cfg.Port)
-	if err := http.ListenAndServe(":"+cfg.Port, middleware.CORS(mux)); err != nil {
+	if err := server.ListenAndServe(); err != nil {
 		slog.Error("server failed", "err", err)
 		os.Exit(1)
 	}

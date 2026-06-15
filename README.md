@@ -159,3 +159,5 @@ Recomputed after every sync.
 | `JWT_SECRET` | — | **Required for API server.** Admin JWT signing secret, minimum 32 characters |
 | `ADMIN_EMAIL` | — | Required only when seeding the first admin user |
 | `ADMIN_PASSWORD` | — | Required with `ADMIN_EMAIL`, minimum 12 characters |
+| `CORS_ALLOWED_ORIGINS` | `http://localhost:3000,http://127.0.0.1:3000` | Comma-separated frontend origins allowed to call the API with credentials. Wildcards are rejected |
+| `SECURE_COOKIES` | `true` | Set to `false` only for local HTTP development |

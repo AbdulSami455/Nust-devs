@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/abdulsami/nust-devs/internal/middleware"
 	"github.com/abdulsami/nust-devs/internal/repository"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
@@ -16,13 +17,15 @@ import (
 type AuthHandler struct {
 	admins       *repository.AdminRepo
 	jwtSecret    string
+	secureCookie bool
 	loginLimiter *loginRateLimiter
 }
 
-func NewAuthHandler(admins *repository.AdminRepo, jwtSecret string) *AuthHandler {
+func NewAuthHandler(admins *repository.AdminRepo, jwtSecret string, secureCookie bool) *AuthHandler {
 	return &AuthHandler{
 		admins:       admins,
 		jwtSecret:    jwtSecret,
+		secureCookie: secureCookie,
 		loginLimiter: newLoginRateLimiter(),
 	}
 }
@@ -83,7 +86,34 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]string{"token": signed})
+	http.SetCookie(w, h.authCookie(signed, time.Now().Add(24*time.Hour)))
+	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
+func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, h.authCookie("", time.Unix(0, 0)))
+	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
+func (h *AuthHandler) authCookie(value string, expires time.Time) *http.Cookie {
+	maxAge := int(time.Until(expires).Seconds())
+	if value == "" {
+		maxAge = -1
+	}
+	sameSite := http.SameSiteLaxMode
+	if h.secureCookie {
+		sameSite = http.SameSiteNoneMode
+	}
+	return &http.Cookie{
+		Name:     middleware.AdminTokenCookie,
+		Value:    value,
+		Path:     "/",
+		Expires:  expires,
+		MaxAge:   maxAge,
+		HttpOnly: true,
+		Secure:   h.secureCookie,
+		SameSite: sameSite,
+	}
 }
 
 type loginBucket struct {
