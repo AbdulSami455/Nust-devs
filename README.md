@@ -156,6 +156,6 @@ Recomputed after every sync.
 | `DATABASE_URL` | — | PostgreSQL DSN |
 | `REDIS_URL` | `redis://localhost:6379` | Redis address |
 | `GITHUB_TOKEN` | — | **Required.** GitHub PAT |
-| `JWT_SECRET` | `change_me` | Admin JWT signing secret |
-| `ADMIN_EMAIL` | `admin@nust.edu.pk` | Seeded admin email |
-| `ADMIN_PASSWORD` | `admin123` | Seeded admin password |
+| `JWT_SECRET` | — | **Required for API server.** Admin JWT signing secret, minimum 32 characters |
+| `ADMIN_EMAIL` | — | Required only when seeding the first admin user |
+| `ADMIN_PASSWORD` | — | Required with `ADMIN_EMAIL`, minimum 12 characters |

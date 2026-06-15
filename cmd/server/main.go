@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"os"
@@ -26,6 +27,11 @@ func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
 
+	if err := cfg.ValidateServer(); err != nil {
+		slog.Error("invalid server configuration", "err", err)
+		os.Exit(1)
+	}
+
 	if err := db.RunMigrations(cfg.DBUrl); err != nil {
 		slog.Error("migrations failed", "err", err)
 		os.Exit(1)
@@ -47,7 +53,10 @@ func main() {
 	asynqClient := asynq.NewClient(asynq.RedisClientOpt{Addr: cfg.RedisAddr()})
 	defer asynqClient.Close()
 
-	seedAdmin(context.Background(), adminRepo, cfg)
+	if err := seedAdmin(context.Background(), adminRepo, cfg); err != nil {
+		slog.Error("admin seed failed", "err", err)
+		os.Exit(1)
+	}
 
 	authH := handler.NewAuthHandler(adminRepo, cfg.JWTSecret)
 	devH := handler.NewDeveloperHandler(devRepo, asynqClient)
@@ -126,27 +135,25 @@ func main() {
 	}
 }
 
-func seedAdmin(ctx context.Context, repo *repository.AdminRepo, cfg *config.Config) {
+func seedAdmin(ctx context.Context, repo *repository.AdminRepo, cfg *config.Config) error {
 	n, err := repo.Count(ctx)
-	if err != nil || n > 0 {
-		return
-	}
-	email := "admin@nust.edu.pk"
-	password := "admin123"
-	if v := os.Getenv("ADMIN_EMAIL"); v != "" {
-		email = v
-	}
-	if v := os.Getenv("ADMIN_PASSWORD"); v != "" {
-		password = v
-	}
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		slog.Error("seed admin: bcrypt failed", "err", err)
-		return
+		return err
 	}
-	if _, err := repo.Create(ctx, email, string(hash)); err != nil {
-		slog.Error("seed admin: create failed", "err", err)
-		return
+	if n > 0 {
+		return nil
 	}
-	slog.Info("seeded admin user", "email", email)
+
+	if cfg.AdminEmail == "" || cfg.AdminPassword == "" {
+		return errors.New("no admin users exist; set ADMIN_EMAIL and ADMIN_PASSWORD to seed the first admin")
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(cfg.AdminPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	if _, err := repo.Create(ctx, cfg.AdminEmail, string(hash)); err != nil {
+		return err
+	}
+	slog.Info("seeded admin user", "email", cfg.AdminEmail)
+	return nil
 }
