@@ -1,16 +1,11 @@
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
-function getToken() {
-  return typeof window !== "undefined" ? localStorage.getItem("token") : null;
-}
-
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const token = getToken();
   const res = await fetch(`${BASE}${path}`, {
     ...init,
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...init?.headers,
     },
   });
@@ -242,9 +237,13 @@ export type ProjectSort = "stars" | "recent" | "forks" | "growth";
 
 export const api = {
   login: (email: string, password: string) =>
-    request<{ token: string }>("/api/v1/admin/auth/login", {
+    request<{ ok: boolean }>("/api/v1/admin/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
+    }),
+  logout: () =>
+    request<{ ok: boolean }>("/api/v1/admin/auth/logout", {
+      method: "POST",
     }),
 
   admin: {

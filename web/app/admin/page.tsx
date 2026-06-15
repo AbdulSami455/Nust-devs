@@ -19,8 +19,7 @@ export default function AdminLoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { token } = await api.login(email, password);
-      localStorage.setItem("token", token);
+      await api.login(email, password);
       router.push("/admin/dashboard");
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Login failed");

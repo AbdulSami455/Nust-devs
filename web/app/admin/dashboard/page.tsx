@@ -160,9 +160,12 @@ export default function DashboardPage() {
     }
   }
 
-  function handleLogout() {
-    localStorage.removeItem("token");
-    router.push("/admin");
+  async function handleLogout() {
+    try {
+      await api.logout();
+    } finally {
+      router.push("/admin");
+    }
   }
 
   function field(key: keyof typeof form) {
