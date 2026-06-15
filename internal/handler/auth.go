@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -16,14 +17,16 @@ import (
 
 type AuthHandler struct {
 	admins       *repository.AdminRepo
+	obs          *repository.ObservabilityRepo
 	jwtSecret    string
 	secureCookie bool
 	loginLimiter *loginRateLimiter
 }
 
-func NewAuthHandler(admins *repository.AdminRepo, jwtSecret string, secureCookie bool) *AuthHandler {
+func NewAuthHandler(admins *repository.AdminRepo, obs *repository.ObservabilityRepo, jwtSecret string, secureCookie bool) *AuthHandler {
 	return &AuthHandler{
 		admins:       admins,
+		obs:          obs,
 		jwtSecret:    jwtSecret,
 		secureCookie: secureCookie,
 		loginLimiter: newLoginRateLimiter(),
@@ -66,11 +69,13 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	admin, err := h.admins.GetByEmail(r.Context(), email)
 	if err != nil {
 		h.loginLimiter.recordFailure(ip, email)
+		h.logAuthEvent(r, "", "admin.login.failed", http.StatusUnauthorized, map[string]any{"email": email})
 		writeError(w, http.StatusUnauthorized, "invalid credentials")
 		return
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(admin.PasswordHash), []byte(body.Password)); err != nil {
 		h.loginLimiter.recordFailure(ip, email)
+		h.logAuthEvent(r, admin.ID, "admin.login.failed", http.StatusUnauthorized, map[string]any{"email": email})
 		writeError(w, http.StatusUnauthorized, "invalid credentials")
 		return
 	}
@@ -87,11 +92,14 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.SetCookie(w, h.authCookie(signed, time.Now().Add(24*time.Hour)))
+	h.logAuthEvent(r, admin.ID, "admin.login", http.StatusOK, map[string]any{"email": email})
 	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
 
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	adminID, _ := middleware.AdminIDFromContext(r.Context())
 	http.SetCookie(w, h.authCookie("", time.Unix(0, 0)))
+	h.logAuthEvent(r, adminID, "admin.logout", http.StatusOK, nil)
 	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
 
@@ -231,4 +239,23 @@ func setRetryAfter(w http.ResponseWriter, retryAfter time.Duration) {
 		seconds = 1
 	}
 	w.Header().Set("Retry-After", strconv.Itoa(seconds))
+}
+
+func (h *AuthHandler) logAuthEvent(r *http.Request, adminID, action string, status int, metadata map[string]any) {
+	if h.obs == nil {
+		return
+	}
+	go h.obs.InsertAuditLog(context.Background(), repository.AuditLogInput{
+		ActorType:    "admin",
+		ActorID:      adminID,
+		Action:       action,
+		ResourceType: "admin_user",
+		ResourceID:   adminID,
+		Method:       r.Method,
+		Path:         r.URL.Path,
+		StatusCode:   status,
+		IP:           loginClientIP(r),
+		UserAgent:    r.UserAgent(),
+		Metadata:     metadata,
+	})
 }

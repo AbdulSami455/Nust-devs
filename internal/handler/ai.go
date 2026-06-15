@@ -172,22 +172,34 @@ func (h *AIHandler) Chat(w http.ResponseWriter, r *http.Request) {
 	ch := make(chan string, 32)
 	t0 := time.Now()
 	var agentErr error
+	var writeMu sync.Mutex
 
 	go func() {
 		defer close(ch)
-		agentErr = h.chat.RunStreaming(ctx, cleanMsg, history, ch)
+		agentErr = h.chat.RunStreaming(ctx, ai.RunMetadata{
+			StartedAt:   t0,
+			UserMessage: cleanMsg,
+			IP:          ip,
+			UserAgent:   r.UserAgent(),
+		}, history, ch, func(ev ai.StreamEvent) {
+			writeMu.Lock()
+			defer writeMu.Unlock()
+			_ = writeSSEEvent(w, flusher, string(ev.Type), ev)
+		})
 	}()
 
 	var buf strings.Builder
 	for token := range ch {
+		writeMu.Lock()
 		buf.WriteString(token)
-		fmt.Fprintf(w, "data: %s\n\n", jsonEscape(token))
-		flusher.Flush()
+		_ = writeSSEEvent(w, flusher, "token", token)
+		writeMu.Unlock()
 	}
 
 	// Send done event
-	fmt.Fprintf(w, "event: done\ndata: {}\n\n")
-	flusher.Flush()
+	writeMu.Lock()
+	_ = writeSSEEvent(w, flusher, "done", map[string]any{})
+	writeMu.Unlock()
 
 	// Eval log (best-effort, async)
 	latencyMS := int(time.Since(t0).Milliseconds())
@@ -200,6 +212,18 @@ func (h *AIHandler) Chat(w http.ResponseWriter, r *http.Request) {
 		map[string]any{"response_len": buf.Len(), "rounds": "n/a"},
 		latencyMS, success,
 	)
+}
+
+func writeSSEEvent(w http.ResponseWriter, flusher http.Flusher, event string, payload any) error {
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(w, "event: %s\ndata: %s\n\n", event, data); err != nil {
+		return err
+	}
+	flusher.Flush()
+	return nil
 }
 
 // ── Developer summary endpoint: GET /api/v1/developers/{username}/summary ─────
@@ -235,15 +259,4 @@ func (h *AIHandler) GetDeveloperSummary(w http.ResponseWriter, r *http.Request) 
 	}
 
 	writeJSON(w, http.StatusOK, summary)
-}
-
-// jsonEscape encodes a token string safely for an SSE data line.
-// SSE data lines cannot contain raw newlines — we escape them.
-func jsonEscape(s string) string {
-	b, _ := json.Marshal(s)
-	// b is a JSON string including surrounding quotes; strip them
-	if len(b) >= 2 {
-		return string(b[1 : len(b)-1])
-	}
-	return s
 }

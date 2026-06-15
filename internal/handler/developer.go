@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"log/slog"
@@ -8,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/abdulsami/nust-devs/internal/githubutil"
+	"github.com/abdulsami/nust-devs/internal/middleware"
 	"github.com/abdulsami/nust-devs/internal/models"
 	"github.com/abdulsami/nust-devs/internal/repository"
 	"github.com/abdulsami/nust-devs/internal/worker"
@@ -17,10 +19,11 @@ import (
 type DeveloperHandler struct {
 	devs  *repository.DeveloperRepo
 	asynq *asynq.Client
+	obs   *repository.ObservabilityRepo
 }
 
-func NewDeveloperHandler(devs *repository.DeveloperRepo, asynqClient *asynq.Client) *DeveloperHandler {
-	return &DeveloperHandler{devs: devs, asynq: asynqClient}
+func NewDeveloperHandler(devs *repository.DeveloperRepo, asynqClient *asynq.Client, obs *repository.ObservabilityRepo) *DeveloperHandler {
+	return &DeveloperHandler{devs: devs, asynq: asynqClient, obs: obs}
 }
 
 func (h *DeveloperHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -60,6 +63,7 @@ func (h *DeveloperHandler) Create(w http.ResponseWriter, r *http.Request) {
 			slog.Warn("failed to enqueue initial developer sync", "developer", dev.GithubUsername, "err", err)
 		}
 	}
+	h.logAdminAction(r, "developer.create", dev.ID, map[string]any{"github_username": dev.GithubUsername})
 	writeJSON(w, http.StatusCreated, dev)
 }
 
@@ -87,6 +91,7 @@ func (h *DeveloperHandler) Update(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "could not update developer")
 		return
 	}
+	h.logAdminAction(r, "developer.update", dev.ID, map[string]any{"github_username": dev.GithubUsername})
 	writeJSON(w, http.StatusOK, dev)
 }
 
@@ -100,6 +105,7 @@ func (h *DeveloperHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "could not delete developer")
 		return
 	}
+	h.logAdminAction(r, "developer.delete", id, nil)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -112,4 +118,24 @@ func optionalString(s *string) *string {
 		return nil
 	}
 	return &t
+}
+
+func (h *DeveloperHandler) logAdminAction(r *http.Request, action, resourceID string, metadata map[string]any) {
+	if h.obs == nil {
+		return
+	}
+	adminID, _ := middleware.AdminIDFromContext(r.Context())
+	go h.obs.InsertAuditLog(context.Background(), repository.AuditLogInput{
+		ActorType:    "admin",
+		ActorID:      adminID,
+		Action:       action,
+		ResourceType: "developer",
+		ResourceID:   resourceID,
+		Method:       r.Method,
+		Path:         r.URL.Path,
+		StatusCode:   http.StatusOK,
+		IP:           r.RemoteAddr,
+		UserAgent:    r.UserAgent(),
+		Metadata:     metadata,
+	})
 }
