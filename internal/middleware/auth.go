@@ -13,6 +13,39 @@ type contextKey string
 const AdminIDKey contextKey = "admin_id"
 const AdminTokenCookie = "admin_token"
 
+func AdminIDFromContext(ctx context.Context) (string, bool) {
+	v, ok := ctx.Value(AdminIDKey).(string)
+	if !ok || v == "" {
+		return "", false
+	}
+	return v, true
+}
+
+func AdminIDFromRequest(r *http.Request, secret string) (string, bool) {
+	tokenStr := bearerToken(r)
+	if tokenStr == "" {
+		return "", false
+	}
+	token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (any, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, jwt.ErrSignatureInvalid
+		}
+		return []byte(secret), nil
+	})
+	if err != nil || !token.Valid {
+		return "", false
+	}
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return "", false
+	}
+	sub, ok := claims["sub"].(string)
+	if !ok || strings.TrimSpace(sub) == "" {
+		return "", false
+	}
+	return sub, true
+}
+
 func Auth(secret string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

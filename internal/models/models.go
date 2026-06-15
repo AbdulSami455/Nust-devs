@@ -246,3 +246,63 @@ type InnovationGraph struct {
 	TopOrganizations []NameCount       `json:"top_organizations"`
 	TopContributors  []ContributorStat `json:"top_contributors"`
 }
+
+type AuditLog struct {
+	ID           string         `json:"id"`
+	ActorType    string         `json:"actor_type"`
+	ActorID      string         `json:"actor_id,omitempty"`
+	Action       string         `json:"action"`
+	ResourceType string         `json:"resource_type"`
+	ResourceID   string         `json:"resource_id,omitempty"`
+	Method       string         `json:"method,omitempty"`
+	Path         string         `json:"path,omitempty"`
+	StatusCode   int            `json:"status_code"`
+	IP           string         `json:"ip,omitempty"`
+	UserAgent    string         `json:"user_agent,omitempty"`
+	Metadata     map[string]any `json:"metadata,omitempty"`
+	CreatedAt    time.Time      `json:"created_at"`
+}
+
+type AgentRun struct {
+	ID            string     `json:"id"`
+	SessionID     string     `json:"session_id"`
+	AgentName     string     `json:"agent_name"`
+	UserMessage   string     `json:"user_message"`
+	InputHash     string     `json:"input_hash"`
+	Status        string     `json:"status"`
+	IP            string     `json:"ip,omitempty"`
+	UserAgent     string     `json:"user_agent,omitempty"`
+	ToolCalls     int        `json:"tool_calls"`
+	LatencyMS     int        `json:"latency_ms"`
+	ErrorMessage  string     `json:"error_message,omitempty"`
+	ResponseChars int        `json:"response_chars"`
+	CreatedAt     time.Time  `json:"created_at"`
+	FinishedAt    *time.Time `json:"finished_at,omitempty"`
+}
+
+type AgentRunEvent struct {
+	ID        string         `json:"id"`
+	RunID     string         `json:"run_id"`
+	EventType string         `json:"event_type"`
+	ToolName  string         `json:"tool_name,omitempty"`
+	Payload   map[string]any `json:"payload,omitempty"`
+	LatencyMS int            `json:"latency_ms"`
+	Success   bool           `json:"success"`
+	CreatedAt time.Time      `json:"created_at"`
+}
+
+type ObservabilityOverview struct {
+	TotalAuditLogs      int        `json:"total_audit_logs"`
+	AgentRuns24h        int        `json:"agent_runs_24h"`
+	AgentSuccessRate24h float64    `json:"agent_success_rate_24h"`
+	AvgAgentLatencyMS   int        `json:"avg_agent_latency_ms"`
+	ActiveAgentRuns     int        `json:"active_agent_runs"`
+	LastAgentRunAt      *time.Time `json:"last_agent_run_at,omitempty"`
+}
+
+type ObservabilityResponse struct {
+	Overview     ObservabilityOverview `json:"overview"`
+	RecentLogs   []AuditLog            `json:"recent_logs"`
+	RecentRuns   []AgentRun            `json:"recent_runs"`
+	RecentEvents []AgentRunEvent       `json:"recent_events"`
+}

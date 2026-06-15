@@ -232,6 +232,66 @@ export interface OSSStats {
   top_language?: string;
 }
 
+export interface AuditLog {
+  id: string;
+  actor_type: string;
+  actor_id?: string;
+  action: string;
+  resource_type: string;
+  resource_id?: string;
+  method?: string;
+  path?: string;
+  status_code: number;
+  ip?: string;
+  user_agent?: string;
+  metadata?: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface AgentRun {
+  id: string;
+  session_id: string;
+  agent_name: string;
+  user_message: string;
+  input_hash: string;
+  status: string;
+  ip?: string;
+  user_agent?: string;
+  tool_calls: number;
+  latency_ms: number;
+  error_message?: string;
+  response_chars: number;
+  created_at: string;
+  finished_at?: string;
+}
+
+export interface AgentRunEvent {
+  id: string;
+  run_id: string;
+  event_type: string;
+  tool_name?: string;
+  payload?: Record<string, unknown>;
+  latency_ms: number;
+  success: boolean;
+  created_at: string;
+}
+
+export interface ObservabilityOverview {
+  total_audit_logs: number;
+  agent_runs_24h: number;
+  agent_success_rate_24h: number;
+  avg_agent_latency_ms: number;
+  active_agent_runs: number;
+  last_agent_run_at?: string;
+}
+
+export interface ObservabilityResponse {
+  overview: ObservabilityOverview;
+  recent_logs: AuditLog[];
+  recent_runs: AgentRun[];
+  recent_events: AgentRunEvent[];
+}
+
 export type ProjectCategory = "all" | "original" | "forks";
 export type ProjectSort = "stars" | "recent" | "forks" | "growth";
 
@@ -285,6 +345,15 @@ export const api = {
           method: "POST",
           body: JSON.stringify(admin_notes ? { admin_notes } : {}),
         }),
+    },
+    observability: {
+      overview: () => request<ObservabilityResponse>("/api/v1/admin/observability"),
+      logs: (limit = 50) =>
+        request<AuditLog[]>(`/api/v1/admin/observability/logs?limit=${limit}`),
+      agentRuns: (limit = 25) =>
+        request<AgentRun[]>(`/api/v1/admin/observability/agent-runs?limit=${limit}`),
+      agentEvents: (limit = 40) =>
+        request<AgentRunEvent[]>(`/api/v1/admin/observability/agent-events?limit=${limit}`),
     },
   },
 
@@ -408,6 +477,14 @@ export interface ChatMessage {
   content: string;
 }
 
+export interface ChatAgentEvent {
+  type: "status" | "tool_call" | "tool_done";
+  message?: string;
+  tool_name?: string;
+  success?: boolean;
+  latency_ms?: number;
+}
+
 /** Fetch the cached AI summary for a developer. Returns null if unavailable. */
 export async function fetchDeveloperSummary(username: string): Promise<DeveloperSummary | null> {
   try {
@@ -426,6 +503,7 @@ export function streamChat(
   message: string,
   history: ChatMessage[],
   onToken: (token: string) => void,
+  onAgentEvent: (event: ChatAgentEvent) => void,
   onDone: () => void,
   onError: (err: string) => void,
 ): AbortController {
@@ -436,6 +514,7 @@ export function streamChat(
     try {
       res = await fetch(`${BASE}/api/v1/ai/chat`, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message, history }),
         signal: controller.signal,
@@ -463,20 +542,34 @@ export function streamChat(
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split("\n");
       buffer = lines.pop() ?? "";
+      let currentEvent = "message";
       for (const line of lines) {
+        if (line.startsWith("event: ")) {
+          currentEvent = line.slice(7).trim();
+          continue;
+        }
         if (line.startsWith("data: ")) {
-          const payload = line.slice(6);
-          if (payload === "{}") continue; // done event data
-          // Unescape JSON-encoded token
-          try {
-            const token = JSON.parse(`"${payload}"`);
-            onToken(token);
-          } catch {
-            onToken(payload);
+          const payload = line.slice(6).trim();
+          if (currentEvent === "done") {
+            onDone();
+            return;
           }
-        } else if (line.startsWith("event: done")) {
-          onDone();
-          return;
+          if (currentEvent === "token") {
+            try {
+              onToken(JSON.parse(payload) as string);
+            } catch {
+              onToken(payload);
+            }
+            continue;
+          }
+          if (currentEvent === "status" || currentEvent === "tool_call" || currentEvent === "tool_done") {
+            try {
+              onAgentEvent(JSON.parse(payload) as ChatAgentEvent);
+            } catch {
+              onAgentEvent({ type: "status", message: payload });
+            }
+            continue;
+          }
         }
       }
     }

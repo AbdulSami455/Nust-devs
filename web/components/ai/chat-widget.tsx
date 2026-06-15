@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { streamChat, type ChatMessage } from "@/lib/api";
+import { streamChat, type ChatAgentEvent, type ChatMessage } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 // ── Suggested prompts ─────────────────────────────────────────────────────────
@@ -20,6 +20,15 @@ interface Message {
   content: string;
   streaming?: boolean;
   ts: number;
+}
+
+interface AgentTimelineEvent {
+  id: string;
+  type: ChatAgentEvent["type"];
+  message: string;
+  toolName?: string;
+  success?: boolean;
+  latencyMS?: number;
 }
 
 // ── Language colour map ───────────────────────────────────────────────────────
@@ -487,6 +496,7 @@ export function ChatWidget() {
   const [input, setInput]         = useState("");
   const [busy, setBusy]           = useState(false);
   const [error, setError]         = useState<string | null>(null);
+  const [agentEvents, setAgentEvents] = useState<AgentTimelineEvent[]>([]);
   const abortRef  = useRef<AbortController | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef  = useRef<HTMLTextAreaElement>(null);
@@ -520,6 +530,7 @@ export function ChatWidget() {
 
     const userMsg: Message = { role: "user", content: msg, ts: Date.now() };
     setMessages((prev) => [...prev, userMsg]);
+    setAgentEvents([{ id: `${Date.now()}-status`, type: "status", message: "Thinking" }]);
 
     const history: ChatMessage[] = messages.map((m) => ({ role: m.role, content: m.content }));
     setMessages((prev) => [...prev, { role: "assistant", content: "", streaming: true, ts: Date.now() }]);
@@ -535,6 +546,19 @@ export function ChatWidget() {
           return copy;
         });
       },
+      (event) => {
+        setAgentEvents((prev) => [
+          ...prev,
+          {
+            id: `${Date.now()}-${prev.length}`,
+            type: event.type,
+            message: event.message ?? describeAgentEvent(event),
+            toolName: event.tool_name,
+            success: event.success,
+            latencyMS: event.latency_ms,
+          },
+        ]);
+      },
       () => {
         setMessages((prev) => {
           const copy = [...prev];
@@ -546,14 +570,20 @@ export function ChatWidget() {
       },
       (err) => {
         setMessages((prev) => prev.filter((m) => !m.streaming));
+        setAgentEvents((prev) => [...prev, { id: `${Date.now()}-error`, type: "status", message: "Run failed" }]);
         setError(err);
         setBusy(false);
       },
     );
   }, [busy, messages]);
 
-  const cancel = () => { abortRef.current?.abort(); setMessages((prev) => prev.filter((m) => !m.streaming)); setBusy(false); };
-  const clear  = () => { if (busy) cancel(); setMessages([]); setError(null); };
+  const cancel = () => {
+    abortRef.current?.abort();
+    setMessages((prev) => prev.filter((m) => !m.streaming));
+    setAgentEvents((prev) => [...prev, { id: `${Date.now()}-cancel`, type: "status", message: "Run cancelled" }]);
+    setBusy(false);
+  };
+  const clear  = () => { if (busy) cancel(); setMessages([]); setAgentEvents([]); setError(null); };
 
   const handleKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); }
@@ -611,7 +641,7 @@ export function ChatWidget() {
                 <p className="text-sm font-semibold text-white">NUST Devs AI</p>
                 <p className="flex items-center gap-1 text-[11px] text-white/70">
                   <span className={cn("size-1.5 rounded-full", busy ? "bg-amber-300 animate-pulse" : "bg-emerald-400")} />
-                  {busy ? "Thinking…" : "Ready to help"}
+                  {busy ? latestAgentMessage(agentEvents) : "Ready to help"}
                 </p>
               </div>
             </div>
@@ -637,6 +667,31 @@ export function ChatWidget() {
             <>
               {/* ── Messages ──────────────────────────────────────────── */}
               <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4 min-h-0 space-y-5 scroll-smooth">
+                {agentEvents.length > 0 && (
+                  <div className="rounded-xl border border-border/70 bg-muted/30 p-3">
+                    <div className="mb-2 flex items-center justify-between">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                        Agent Activity
+                      </p>
+                      {busy && <TypingDots />}
+                    </div>
+                    <div className="space-y-1.5">
+                      {agentEvents.slice(-6).map((event) => (
+                        <div key={event.id} className="flex items-start justify-between gap-3 text-xs">
+                          <div className="min-w-0">
+                            <p className="font-medium text-foreground">{event.message}</p>
+                            {event.toolName && (
+                              <p className="truncate font-mono text-[11px] text-muted-foreground">{event.toolName}</p>
+                            )}
+                          </div>
+                          <div className="shrink-0 text-[11px] text-muted-foreground">
+                            {event.latencyMS ? `${event.latencyMS}ms` : event.success === false ? "failed" : ""}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {messages.length === 0 ? (
                   <div className="flex h-full flex-col items-center justify-center gap-6 py-4">
@@ -753,4 +808,18 @@ export function ChatWidget() {
       )}
     </>
   );
+}
+
+function describeAgentEvent(event: ChatAgentEvent) {
+  if (event.type === "tool_call") return `Running ${event.tool_name ?? "tool"}`;
+  if (event.type === "tool_done") {
+    if (event.success === false) return `${event.tool_name ?? "Tool"} failed`;
+    return `${event.tool_name ?? "Tool"} finished`;
+  }
+  return event.message ?? "Thinking";
+}
+
+function latestAgentMessage(events: AgentTimelineEvent[]) {
+  if (events.length === 0) return "Thinking…";
+  return events[events.length - 1]?.message ?? "Thinking…";
 }

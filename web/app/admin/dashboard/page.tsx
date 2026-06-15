@@ -3,7 +3,15 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { api, type Developer, type DeveloperRequest } from "@/lib/api";
+import {
+  api,
+  type AgentRun,
+  type AgentRunEvent,
+  type AuditLog,
+  type Developer,
+  type DeveloperRequest,
+  type ObservabilityOverview,
+} from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,6 +47,10 @@ export default function DashboardPage() {
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [pendingRequests, setPendingRequests] = useState<DeveloperRequest[]>([]);
+  const [obsOverview, setObsOverview] = useState<ObservabilityOverview | null>(null);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [agentRuns, setAgentRuns] = useState<AgentRun[]>([]);
+  const [agentEvents, setAgentEvents] = useState<AgentRunEvent[]>([]);
 
   const fetchDevelopers = useCallback(async () => {
     try {
@@ -84,6 +96,16 @@ export default function DashboardPage() {
       .list("pending")
       .then((requests) => {
         if (!cancelled) setPendingRequests(requests);
+      })
+      .catch(() => {});
+    api.admin.observability
+      .overview()
+      .then((data) => {
+        if (cancelled) return;
+        setObsOverview(data.overview);
+        setAuditLogs(data.recent_logs);
+        setAgentRuns(data.recent_runs);
+        setAgentEvents(data.recent_events);
       })
       .catch(() => {});
 
@@ -222,6 +244,118 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </div>
+
+        {obsOverview && (
+          <section className="space-y-3">
+            <h2 className="text-lg font-semibold">Observability</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Audit Logs</CardTitle>
+                </CardHeader>
+                <CardContent><p className="text-3xl font-bold">{obsOverview.total_audit_logs}</p></CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Agent Runs 24h</CardTitle>
+                </CardHeader>
+                <CardContent><p className="text-3xl font-bold">{obsOverview.agent_runs_24h}</p></CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Agent Success</CardTitle>
+                </CardHeader>
+                <CardContent><p className="text-3xl font-bold">{Math.round(obsOverview.agent_success_rate_24h)}%</p></CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Avg Agent Latency</CardTitle>
+                </CardHeader>
+                <CardContent><p className="text-3xl font-bold">{obsOverview.avg_agent_latency_ms}ms</p></CardContent>
+              </Card>
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-3">
+              <Card className="lg:col-span-2">
+                <CardHeader>
+                  <CardTitle>Recent Audit Logs</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {auditLogs.slice(0, 8).map((log) => (
+                    <div key={log.id} className="flex items-start justify-between gap-3 border-b pb-3 last:border-0 last:pb-0">
+                      <div className="min-w-0">
+                        <p className="font-medium">{log.action}</p>
+                        <p className="truncate text-sm text-muted-foreground">
+                          {log.actor_type} · {log.method} {log.path}
+                        </p>
+                      </div>
+                      <div className="shrink-0 text-right text-xs text-muted-foreground">
+                        <p>{log.status_code}</p>
+                        <p>{new Date(log.created_at).toLocaleString()}</p>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Agent Runs</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {agentRuns.slice(0, 6).map((run) => (
+                    <div key={run.id} className="border-b pb-3 last:border-0 last:pb-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-medium">{run.status}</p>
+                        <Badge variant={run.status === "completed" ? "default" : "secondary"}>
+                          {run.tool_calls} tools
+                        </Badge>
+                      </div>
+                      <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{run.user_message}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {run.latency_ms}ms · {new Date(run.created_at).toLocaleString()}
+                      </p>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Agent Tool Events</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-lg border bg-background overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Event</TableHead>
+                        <TableHead>Tool</TableHead>
+                        <TableHead>Success</TableHead>
+                        <TableHead>Latency</TableHead>
+                        <TableHead>Time</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {agentEvents.slice(0, 10).map((event) => (
+                        <TableRow key={event.id}>
+                          <TableCell className="font-medium">{event.event_type}</TableCell>
+                          <TableCell className="font-mono text-sm">{event.tool_name || "—"}</TableCell>
+                          <TableCell>{event.success ? "yes" : "no"}</TableCell>
+                          <TableCell>{event.latency_ms ? `${event.latency_ms}ms` : "—"}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {new Date(event.created_at).toLocaleString()}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </section>
+        )}
 
         {pendingRequests.length > 0 && (
           <section className="space-y-3">
