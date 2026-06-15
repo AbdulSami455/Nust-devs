@@ -3,7 +3,9 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 )
 
 type Config struct {
@@ -15,6 +17,8 @@ type Config struct {
 	AdminPassword      string
 	AllowedCORSOrigins []string
 	SecureCookies      bool
+	PublicRateLimit    int
+	PublicRateWindow   time.Duration
 	OpenRouterKey      string
 	AIModel            string
 }
@@ -32,6 +36,14 @@ func Load() *Config {
 			"http://localhost:3000,http://127.0.0.1:3000",
 		)),
 		SecureCookies: getEnv("SECURE_COOKIES", "true") != "false",
+		PublicRateLimit: getEnvInt(
+			"PUBLIC_RATE_LIMIT_REQUESTS",
+			600,
+		),
+		PublicRateWindow: getEnvDuration(
+			"PUBLIC_RATE_LIMIT_WINDOW",
+			time.Minute,
+		),
 		OpenRouterKey: getEnv("OPENROUTER_API_KEY", ""),
 		AIModel:       getEnv("AI_MODEL", "openai/gpt-oss-120b:free"),
 	}
@@ -62,6 +74,12 @@ func (c *Config) ValidateServer() error {
 			return fmt.Errorf("CORS_ALLOWED_ORIGINS cannot include wildcard origin")
 		}
 	}
+	if c.PublicRateLimit < 1 {
+		return fmt.Errorf("PUBLIC_RATE_LIMIT_REQUESTS must be greater than 0")
+	}
+	if c.PublicRateWindow <= 0 {
+		return fmt.Errorf("PUBLIC_RATE_LIMIT_WINDOW must be greater than 0")
+	}
 	return nil
 }
 
@@ -76,6 +94,30 @@ func getEnv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+func getEnvInt(key string, fallback int) int {
+	v := strings.TrimSpace(os.Getenv(key))
+	if v == "" {
+		return fallback
+	}
+	n, err := strconv.Atoi(v)
+	if err != nil {
+		return fallback
+	}
+	return n
+}
+
+func getEnvDuration(key string, fallback time.Duration) time.Duration {
+	v := strings.TrimSpace(os.Getenv(key))
+	if v == "" {
+		return fallback
+	}
+	d, err := time.ParseDuration(v)
+	if err != nil {
+		return fallback
+	}
+	return d
 }
 
 func splitCSV(s string) []string {
