@@ -7,6 +7,27 @@ import (
 	"google.golang.org/adk/tool/functiontool"
 )
 
+var allowedToolNames = map[string]struct{}{
+	"get_top_developers":               {},
+	"get_developer_profile":            {},
+	"get_developer_repos":              {},
+	"get_developer_contribution_stats": {},
+	"get_developer_contributions":      {},
+	"get_developer_wrapped":            {},
+	"get_stats_overview":               {},
+	"get_language_stats":               {},
+	"get_oss_stats":                    {},
+	"get_streak_summary":               {},
+	"get_top_projects":                 {},
+	"get_fastest_growing_projects":     {},
+	"get_dev_of_month":                 {},
+	"get_innovation_graph":             {},
+	"get_recent_activity":              {},
+	"get_community_activity":           {},
+	"compare_developers":               {},
+	"search_developers":                {},
+}
+
 type toolDeps struct {
 	stats *repository.StatsRepo
 }
