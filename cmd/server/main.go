@@ -50,6 +50,7 @@ func main() {
 	adminRepo := repository.NewAdminRepo(pool)
 	devRepo := repository.NewDeveloperRepo(pool)
 	statsRepo := repository.NewStatsRepo(pool)
+	obsRepo := repository.NewObservabilityRepo(pool)
 	ghClient := gh.NewClient(os.Getenv("GITHUB_TOKEN"))
 	asynqClient := asynq.NewClient(asynq.RedisClientOpt{Addr: cfg.RedisAddr()})
 	defer asynqClient.Close()
@@ -59,13 +60,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	authH := handler.NewAuthHandler(adminRepo, cfg.JWTSecret, cfg.SecureCookies)
-	devH := handler.NewDeveloperHandler(devRepo, asynqClient)
-	syncH := handler.NewSyncHandler(devRepo, asynqClient, ghClient)
+	authH := handler.NewAuthHandler(adminRepo, obsRepo, cfg.JWTSecret, cfg.SecureCookies)
+	devH := handler.NewDeveloperHandler(devRepo, asynqClient, obsRepo)
+	syncH := handler.NewSyncHandler(devRepo, asynqClient, ghClient, obsRepo)
 	pubH := handler.NewPublicHandler(statsRepo, redisCach)
-	reqH := handler.NewProfileRequestHandler(requestRepo, devRepo, asynqClient)
+	reqH := handler.NewProfileRequestHandler(requestRepo, devRepo, asynqClient, obsRepo)
+	obsH := handler.NewObservabilityHandler(obsRepo)
 
-	aiChat, err := ai.NewChatService(context.Background(), cfg, statsRepo)
+	aiChat, err := ai.NewChatService(context.Background(), cfg, statsRepo, obsRepo)
 	if err != nil {
 		slog.Error("ai setup failed", "err", err)
 		os.Exit(1)
@@ -138,6 +140,10 @@ func main() {
 	protected.HandleFunc("GET /api/v1/admin/profile-requests", reqH.List)
 	protected.HandleFunc("POST /api/v1/admin/profile-requests/{id}/approve", reqH.Approve)
 	protected.HandleFunc("POST /api/v1/admin/profile-requests/{id}/reject", reqH.Reject)
+	protected.HandleFunc("GET /api/v1/admin/observability", obsH.GetOverview)
+	protected.HandleFunc("GET /api/v1/admin/observability/logs", obsH.ListAuditLogs)
+	protected.HandleFunc("GET /api/v1/admin/observability/agent-runs", obsH.ListAgentRuns)
+	protected.HandleFunc("GET /api/v1/admin/observability/agent-events", obsH.ListAgentEvents)
 
 	auth := middleware.Auth(cfg.JWTSecret)
 	mux.Handle("/api/v1/admin/developers", auth(protected))
@@ -146,10 +152,12 @@ func main() {
 	mux.Handle("/api/v1/admin/sync/", auth(protected))
 	mux.Handle("/api/v1/admin/profile-requests", auth(protected))
 	mux.Handle("/api/v1/admin/profile-requests/", auth(protected))
+	mux.Handle("/api/v1/admin/observability", auth(protected))
+	mux.Handle("/api/v1/admin/observability/", auth(protected))
 
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,
-		Handler:           middleware.CORS(mux, cfg.AllowedCORSOrigins),
+		Handler:           middleware.AuditLogs(obsRepo, cfg.JWTSecret)(middleware.CORS(mux, cfg.AllowedCORSOrigins)),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      120 * time.Second,
