@@ -1,6 +1,9 @@
 version: 1
 applications:
   - appRoot: web
+    env:
+      variables:
+        AMPLIFY_MONOREPO_APP_ROOT: web
     frontend:
       phases:
         preBuild:
@@ -16,3 +19,4 @@ applications:
       cache:
         paths:
           - node_modules/**/*
+          - .next/cache/**/*
