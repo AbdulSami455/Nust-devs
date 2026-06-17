@@ -1,0 +1,108 @@
+# Production compose file — backend services only (no frontend).
+# Deploy with: docker stack deploy -c docker-compose.prod.yml nustdevs
+# Build the image locally first: docker build -t nustdevs-api:latest .
+#
+# Swarm does not support env_file:, so app secrets are read from the
+# existing .env in this directory via variable substitution at deploy
+# time (docker stack deploy reads .env from the CWD automatically).
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: nustdevs
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    deploy:
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+      restart_policy:
+        condition: on-failure
+    networks:
+      - backend
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    deploy:
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+      restart_policy:
+        condition: on-failure
+    networks:
+      - backend
+
+  api:
+    image: nustdevs-api:latest
+    command: ./bin/server
+    environment:
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/nustdevs?sslmode=disable
+      REDIS_URL: redis://redis:6379
+      PORT: ${PORT}
+      JWT_SECRET: ${JWT_SECRET}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      AI_MODEL: ${AI_MODEL}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+      SECURE_COOKIES: ${SECURE_COOKIES:-true}
+      PUBLIC_RATE_LIMIT_REQUESTS: ${PUBLIC_RATE_LIMIT_REQUESTS:-600}
+      PUBLIC_RATE_LIMIT_WINDOW: ${PUBLIC_RATE_LIMIT_WINDOW:-1m}
+    ports:
+      - "8080:8080"
+    deploy:
+      replicas: 2
+      update_config:
+        order: start-first
+        parallelism: 1
+      restart_policy:
+        condition: on-failure
+    networks:
+      - backend
+    depends_on:
+      - postgres
+      - redis
+
+  worker:
+    image: nustdevs-api:latest
+    command: ./bin/worker
+    environment:
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/nustdevs?sslmode=disable
+      REDIS_URL: redis://redis:6379
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      AI_MODEL: ${AI_MODEL}
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    networks:
+      - backend
+    depends_on:
+      - postgres
+      - redis
+
+networks:
+  backend:
+    driver: overlay
+
+volumes:
+  postgres_data:
+  redis_data:
