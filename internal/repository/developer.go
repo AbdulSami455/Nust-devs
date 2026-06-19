@@ -43,13 +43,13 @@ func (r *DeveloperRepo) Create(ctx context.Context, in models.CreateDeveloperInp
 		VALUES ($1, $2, $3, $4)
 		RETURNING id, github_username, email, display_name, notes,
 		          avatar_url, bio, location, company, website,
-		          followers, following, public_repos, total_stars,
+		          followers, following, public_repos, readme_repos, total_stars,
 		          activity_score, verification_status, last_synced_at, created_at, updated_at`,
 		in.GithubUsername, in.Email, in.DisplayName, in.Notes,
 	).Scan(
 		&d.ID, &d.GithubUsername, &d.Email, &d.DisplayName, &d.Notes,
 		&d.AvatarURL, &d.Bio, &d.Location, &d.Company, &d.Website,
-		&d.Followers, &d.Following, &d.PublicRepos, &d.TotalStars,
+		&d.Followers, &d.Following, &d.PublicRepos, &d.ReadmeRepos, &d.TotalStars,
 		&d.ActivityScore, &d.VerificationStatus, &d.LastSyncedAt, &d.CreatedAt, &d.UpdatedAt,
 	)
 	if err != nil {
@@ -66,7 +66,7 @@ func (r *DeveloperRepo) List(ctx context.Context) ([]models.Developer, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT id, github_username, email, display_name, notes,
 		       avatar_url, bio, location, company, website,
-		       followers, following, public_repos, total_stars,
+		       followers, following, public_repos, readme_repos, total_stars,
 		       activity_score, verification_status, last_synced_at, created_at, updated_at
 		FROM developers
 		ORDER BY created_at DESC`)
@@ -81,7 +81,7 @@ func (r *DeveloperRepo) List(ctx context.Context) ([]models.Developer, error) {
 		if err := rows.Scan(
 			&d.ID, &d.GithubUsername, &d.Email, &d.DisplayName, &d.Notes,
 			&d.AvatarURL, &d.Bio, &d.Location, &d.Company, &d.Website,
-			&d.Followers, &d.Following, &d.PublicRepos, &d.TotalStars,
+			&d.Followers, &d.Following, &d.PublicRepos, &d.ReadmeRepos, &d.TotalStars,
 			&d.ActivityScore, &d.VerificationStatus, &d.LastSyncedAt, &d.CreatedAt, &d.UpdatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan developer: %w", err)
@@ -96,7 +96,7 @@ func (r *DeveloperRepo) GetByID(ctx context.Context, id string) (*models.Develop
 	err := r.db.QueryRow(ctx, `
 		SELECT id, github_username, email, display_name, notes,
 		       avatar_url, bio, location, company, website,
-		       followers, following, public_repos, total_stars,
+		       followers, following, public_repos, readme_repos, total_stars,
 		       activity_score, builder_score, contributor_score, reviewer_score, community_score,
 		       pr_contributions, issue_contributions, review_contributions,
 		       contribution_period_start::text, contribution_period_end::text,
@@ -106,7 +106,7 @@ func (r *DeveloperRepo) GetByID(ctx context.Context, id string) (*models.Develop
 	).Scan(
 		&d.ID, &d.GithubUsername, &d.Email, &d.DisplayName, &d.Notes,
 		&d.AvatarURL, &d.Bio, &d.Location, &d.Company, &d.Website,
-		&d.Followers, &d.Following, &d.PublicRepos, &d.TotalStars,
+		&d.Followers, &d.Following, &d.PublicRepos, &d.ReadmeRepos, &d.TotalStars,
 		&d.ActivityScore, &d.BuilderScore, &d.ContributorScore, &d.ReviewerScore, &d.CommunityScore,
 		&d.PRContributions, &d.IssueContributions, &d.ReviewContributions,
 		&d.ContributionPeriodStart, &d.ContributionPeriodEnd,
@@ -130,13 +130,13 @@ func (r *DeveloperRepo) Update(ctx context.Context, id string, in models.UpdateD
 		WHERE id = $1
 		RETURNING id, github_username, email, display_name, notes,
 		          avatar_url, bio, location, company, website,
-		          followers, following, public_repos, total_stars,
+		          followers, following, public_repos, readme_repos, total_stars,
 		          activity_score, verification_status, last_synced_at, created_at, updated_at`,
 		id, in.Email, in.DisplayName, in.Notes,
 	).Scan(
 		&d.ID, &d.GithubUsername, &d.Email, &d.DisplayName, &d.Notes,
 		&d.AvatarURL, &d.Bio, &d.Location, &d.Company, &d.Website,
-		&d.Followers, &d.Following, &d.PublicRepos, &d.TotalStars,
+		&d.Followers, &d.Following, &d.PublicRepos, &d.ReadmeRepos, &d.TotalStars,
 		&d.ActivityScore, &d.VerificationStatus, &d.LastSyncedAt, &d.CreatedAt, &d.UpdatedAt,
 	)
 	if err != nil {

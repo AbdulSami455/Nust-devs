@@ -204,12 +204,13 @@ func (r *SyncRepo) RecomputeDimensionScores(ctx context.Context, devID string, g
 
 	_, err = r.db.Exec(ctx, `
 		UPDATE developers SET
-			builder_score     = $2,
-			contributor_score = $3,
-			reviewer_score    = $4,
-			community_score   = $5
+			readme_repos      = $2,
+			builder_score     = $3,
+			contributor_score = $4,
+			reviewer_score    = $5,
+			community_score   = $6
 		WHERE id = $1`,
-		devID, builder, contributor, reviewer, community,
+		devID, g.ReposWithReadme, builder, contributor, reviewer, community,
 	)
 	return err
 }

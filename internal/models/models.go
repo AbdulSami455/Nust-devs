@@ -16,6 +16,7 @@ type Developer struct {
 	Followers               int        `json:"followers"`
 	Following               int        `json:"following"`
 	PublicRepos             int        `json:"public_repos"`
+	ReadmeRepos             int        `json:"readme_repos"`
 	TotalStars              int        `json:"total_stars"`
 	ActivityScore           float64    `json:"activity_score"`
 	BuilderScore            float64    `json:"builder_score"`
