@@ -15,6 +15,7 @@ import { DevCard } from "@/components/profile/dev-card";
 import { ContributionHeatmap } from "@/components/profile/contribution-heatmap";
 import { ContributionStatsPanel } from "@/components/profile/contribution-stats";
 import { DeveloperSummaryCard } from "@/components/ai/developer-summary";
+import { ProfileCompletenessCard } from "@/components/ai/profile-completeness";
 
 export function ProfileClient({ username }: { username: string }) {
   const [dev, setDev] = useState<Developer | null>(null);
@@ -77,6 +78,8 @@ export function ProfileClient({ username }: { username: string }) {
       <DevCard dev={dev} rank={rank} />
 
       <DeveloperSummaryCard username={username} />
+
+      <ProfileCompletenessCard dev={dev} repos={repos} />
 
       {contributions.length > 0 && (
         <div className="bento-card">

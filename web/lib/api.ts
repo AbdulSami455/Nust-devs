@@ -28,6 +28,7 @@ export interface Developer {
   company?: string;
   website?: string;
   public_repos: number;
+  readme_repos?: number;
   total_stars: number;
   followers: number;
   following: number;

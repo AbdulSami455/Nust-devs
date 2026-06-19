@@ -1,0 +1,3 @@
+ALTER TABLE developers
+    ADD COLUMN IF NOT EXISTS readme_repos INT NOT NULL DEFAULT 0;
+
