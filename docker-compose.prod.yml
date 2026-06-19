@@ -1,10 +1,3 @@
-# Production compose file — backend services only (no frontend).
-# Deploy with: docker stack deploy -c docker-compose.prod.yml nustdevs
-# Build the image locally first: docker build -t nustdevs-api:latest .
-#
-# Swarm does not support env_file:, so app secrets are read from the
-# existing .env in this directory via variable substitution at deploy
-# time (docker stack deploy reads .env from the CWD automatically).
 
 services:
   postgres:
