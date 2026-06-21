@@ -218,10 +218,13 @@ func projectSnapshotData(ctx tool.Context, stats *repository.StatsRepo, category
 		topRepos = topRepos[:5]
 	}
 	return map[string]any{
-		"projects":        projects,
-		"fastest_growing": fastest,
-		"top_projects":    topRepos,
-		"summary":         fmt.Sprintf("%d projects returned for category=%s, language=%s, sort=%s.", len(projects), category, language, sortBy),
+		"projects":            projects,
+		"fastest_growing":     fastest,
+		"top_projects":        topRepos,
+		"requested_limit":     limit,
+		"returned_count":      len(projects),
+		"has_partial_results": len(projects) < limit,
+		"summary":             fmt.Sprintf("%d projects returned for category=%s, language=%s, sort=%s.", len(projects), category, language, sortBy),
 	}, nil
 }
 
