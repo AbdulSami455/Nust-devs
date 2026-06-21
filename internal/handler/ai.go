@@ -179,6 +179,7 @@ func (h *AIHandler) Chat(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnprocessableEntity, err.Error())
 		return
 	}
+	slog.Info("ai chat request", "ip", ip, "message_len", len(cleanMsg), "user_agent", r.UserAgent())
 
 	// Build validated history
 	var historyJSON []byte
@@ -241,6 +242,7 @@ func (h *AIHandler) Chat(w http.ResponseWriter, r *http.Request) {
 	if !success {
 		slog.Warn("chat agent error", "err", agentErr, "ip", ip)
 	}
+	slog.Info("ai chat completed", "ip", ip, "success", success, "latency_ms", latencyMS)
 	go ai.LogEval(context.Background(), h.db, "chat",
 		ai.HashInput(cleanMsg),
 		map[string]any{"response_len": buf.Len(), "rounds": "n/a"},
@@ -269,6 +271,7 @@ func (h *AIHandler) GetDeveloperSummary(w http.ResponseWriter, r *http.Request) 
 		writeError(w, http.StatusBadRequest, "invalid username")
 		return
 	}
+	slog.Info("ai developer summary request", "username", strings.ToLower(username), "ip", clientIP(r))
 
 	// Rate limit
 	if !h.summaryRL.allow(clientIP(r)) {
@@ -288,6 +291,7 @@ func (h *AIHandler) GetDeveloperSummary(w http.ResponseWriter, r *http.Request) 
 
 	summary, err := h.summaryS.Get(ctx, dev.ID, username)
 	if err != nil || summary == nil {
+		slog.Warn("ai developer summary unavailable", "username", strings.ToLower(username), "err", err)
 		writeError(w, http.StatusServiceUnavailable, "summary not available")
 		return
 	}
@@ -319,6 +323,13 @@ func (h *AIHandler) GetDeveloperComparison(w http.ResponseWriter, r *http.Reques
 		writeError(w, http.StatusServiceUnavailable, "comparison service unavailable")
 		return
 	}
+
+	slog.Info(
+		"ai developer comparison request",
+		"left", strings.ToLower(left),
+		"right", strings.ToLower(right),
+		"ip", clientIP(r),
+	)
 
 	cacheKey := fmt.Sprintf("developers:compare:%s:%s", strings.ToLower(left), strings.ToLower(right))
 	h.cachedJSON(w, r, cacheKey, 15*time.Minute, func() (any, error) {

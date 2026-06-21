@@ -66,7 +66,7 @@ func (r *StatsRepo) ListDevelopers(ctx context.Context, page, limit int) ([]mode
 func (r *StatsRepo) GetDeveloperByUsername(ctx context.Context, username string) (*models.Developer, error) {
 	var d models.Developer
 	err := scanPublicDeveloper(r.db.QueryRow(ctx, fmt.Sprintf(`
-		SELECT %s FROM developers WHERE github_username = $1`, developerCols), username), &d)
+		SELECT %s FROM developers WHERE lower(github_username) = lower($1)`, developerCols), username), &d)
 	if err != nil {
 		return nil, err
 	}
