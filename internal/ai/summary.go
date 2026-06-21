@@ -80,8 +80,7 @@ func (s *SummaryService) Get(ctx context.Context, developerID, username string) 
 func (s *SummaryService) generate(ctx context.Context, developerID, username string) (*DeveloperSummary, error) {
 	prompt := fmt.Sprintf(
 		"Generate a summary card for NUST developer with GitHub username: %s. "+
-			"Call get_developer_profile, get_developer_repos, get_developer_contribution_stats, "+
-			"and get_developer_contributions tools to gather their data first.\n\n%s",
+			"Prefer get_developer_snapshot first, and only fall back to narrower tools if needed.\n\n%s",
 		username, summarySystemPrompt,
 	)
 
