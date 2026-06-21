@@ -88,6 +88,7 @@ type AIHandler struct {
 	projectSummaryS *ai.ProjectSummaryService
 	rankInsightS    *ai.RankInsightService
 	tagsS           *ai.NormalizedTagsService
+	profileS        *ai.ProfileInsightsService
 	compareS        *ai.CompareService
 	statsRepo       *repository.StatsRepo
 	db              *pgxpool.Pool
@@ -105,6 +106,7 @@ func NewAIHandler(
 	projectSummaryS *ai.ProjectSummaryService,
 	rankInsightS *ai.RankInsightService,
 	tagsS *ai.NormalizedTagsService,
+	profileS *ai.ProfileInsightsService,
 	compareS *ai.CompareService,
 	statsRepo *repository.StatsRepo,
 	db *pgxpool.Pool,
@@ -116,6 +118,7 @@ func NewAIHandler(
 		projectSummaryS: projectSummaryS,
 		rankInsightS:    rankInsightS,
 		tagsS:           tagsS,
+		profileS:        profileS,
 		compareS:        compareS,
 		statsRepo:       statsRepo,
 		db:              db,
@@ -406,6 +409,24 @@ func (h *AIHandler) GetProjectNormalizedTags(w http.ResponseWriter, r *http.Requ
 	cacheKey := fmt.Sprintf("projects:%s:normalized-tags", repoID)
 	h.cachedJSON(w, r, cacheKey, 24*time.Hour, func() (any, error) {
 		return h.tagsS.GetProject(r.Context(), repoID)
+	})
+}
+
+// ── Developer profile insights endpoint: GET /api/v1/developers/{username}/profile-insights ─
+
+func (h *AIHandler) GetProfileInsights(w http.ResponseWriter, r *http.Request) {
+	username := strings.TrimSpace(r.PathValue("username"))
+	if !ai.ValidateUsername(username) {
+		writeError(w, http.StatusBadRequest, "invalid username")
+		return
+	}
+	if h.profileS == nil {
+		writeError(w, http.StatusServiceUnavailable, "profile insights service unavailable")
+		return
+	}
+	cacheKey := fmt.Sprintf("developers:%s:profile-insights", strings.ToLower(username))
+	h.cachedJSON(w, r, cacheKey, 24*time.Hour, func() (any, error) {
+		return h.profileS.Get(r.Context(), username)
 	})
 }
 

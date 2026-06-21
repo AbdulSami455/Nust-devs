@@ -145,6 +145,16 @@ type NormalizedTags struct {
 	GeneratedAt  time.Time `json:"generated_at"`
 }
 
+type ProfileInsights struct {
+	DeveloperID         string    `json:"developer_id"`
+	Headline            string    `json:"headline"`
+	RecentActivityRecap string    `json:"recent_activity_recap"`
+	TopAchievements     []string  `json:"top_achievements"`
+	CompletionTips      []string  `json:"completion_tips"`
+	ModelVersion        string    `json:"model_version"`
+	GeneratedAt         time.Time `json:"generated_at"`
+}
+
 type ActivityEvent struct {
 	Type       string `json:"type"`
 	Username   string `json:"username"`

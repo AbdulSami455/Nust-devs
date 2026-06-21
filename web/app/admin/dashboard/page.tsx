@@ -12,6 +12,7 @@ import {
   type DeveloperRequest,
   type ObservabilityOverview,
 } from "@/lib/api";
+import { ProfileInsightsCard } from "@/components/ai/profile-insights";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -51,6 +52,9 @@ export default function DashboardPage() {
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [agentRuns, setAgentRuns] = useState<AgentRun[]>([]);
   const [agentEvents, setAgentEvents] = useState<AgentRunEvent[]>([]);
+  const [insightsOpen, setInsightsOpen] = useState(false);
+  const [insightsUsername, setInsightsUsername] = useState("");
+  const [insightsDisplayName, setInsightsDisplayName] = useState("");
 
   const fetchDevelopers = useCallback(async () => {
     try {
@@ -506,6 +510,18 @@ export default function DashboardPage() {
                       >
                         Remove
                       </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="ml-2"
+                        onClick={() => {
+                          setInsightsUsername(dev.github_username);
+                          setInsightsDisplayName(dev.display_name ?? dev.github_username);
+                          setInsightsOpen(true);
+                        }}
+                      >
+                        AI profile
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))
@@ -513,6 +529,19 @@ export default function DashboardPage() {
             </TableBody>
           </Table>
         </div>
+
+        <Dialog open={insightsOpen} onOpenChange={setInsightsOpen}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>
+                AI profile insights{insightsDisplayName ? ` — ${insightsDisplayName}` : ""}
+              </DialogTitle>
+            </DialogHeader>
+            {insightsUsername ? (
+              <ProfileInsightsCard username={insightsUsername} />
+            ) : null}
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
