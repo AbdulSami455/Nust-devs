@@ -23,6 +23,7 @@ import { OSSStatsPanel } from "@/components/dashboard/oss-stats";
 import { DevCardMini } from "@/components/dashboard/dev-card-mini";
 import { ProjectImpactSummaryCard } from "@/components/ai/project-summary";
 import { NormalizedTagsCard } from "@/components/ai/normalized-tags";
+import { HomeBannerCard } from "@/components/ai/home-banner";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -132,6 +133,10 @@ export default function HomePage() {
 
       <section className="mb-10">
         <BentoStats overview={overview} loading={loading} />
+      </section>
+
+      <section className="mb-10">
+        <HomeBannerCard />
       </section>
 
       <section className="mb-10">
