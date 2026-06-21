@@ -19,6 +19,7 @@ import { ContributionStatsPanel } from "@/components/profile/contribution-stats"
 import { DeveloperSummaryCard } from "@/components/ai/developer-summary";
 import { ProjectImpactSummaryCard } from "@/components/ai/project-summary";
 import { RankInsightCard } from "@/components/ai/rank-insight";
+import { NormalizedTagsCard } from "@/components/ai/normalized-tags";
 import { ProfileCompletenessCard } from "@/components/ai/profile-completeness";
 import { cn } from "@/lib/utils";
 
@@ -88,6 +89,8 @@ export function ProfileClient({ username }: { username: string }) {
       <DevCard dev={dev} rank={rank} />
 
       <RankInsightCard username={username} />
+
+      <NormalizedTagsCard kind="developer" username={username} />
 
       <Card className="border-primary/15 bg-gradient-to-br from-primary/5 via-card to-card">
         <CardHeader>
@@ -193,6 +196,7 @@ export function ProfileClient({ username }: { username: string }) {
                   </div>
                 </a>
                 <ProjectImpactSummaryCard repo={repo} />
+                <NormalizedTagsCard kind="project" repoId={repo.id} />
               </div>
             ))}
           </div>

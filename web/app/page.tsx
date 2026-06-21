@@ -22,6 +22,7 @@ import { LiveActivityFeed } from "@/components/dashboard/live-activity-feed";
 import { OSSStatsPanel } from "@/components/dashboard/oss-stats";
 import { DevCardMini } from "@/components/dashboard/dev-card-mini";
 import { ProjectImpactSummaryCard } from "@/components/ai/project-summary";
+import { NormalizedTagsCard } from "@/components/ai/normalized-tags";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -213,6 +214,7 @@ export default function HomePage() {
                     </div>
                   </a>
                   <ProjectImpactSummaryCard repo={repo} />
+                  <NormalizedTagsCard kind="project" repoId={repo.id} />
                 </div>
               ))}
         </div>
