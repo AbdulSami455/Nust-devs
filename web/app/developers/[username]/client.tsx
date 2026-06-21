@@ -10,18 +10,23 @@ import {
   type ContributionStats,
 } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DevCard } from "@/components/profile/dev-card";
 import { ContributionHeatmap } from "@/components/profile/contribution-heatmap";
 import { ContributionStatsPanel } from "@/components/profile/contribution-stats";
 import { DeveloperSummaryCard } from "@/components/ai/developer-summary";
 import { ProfileCompletenessCard } from "@/components/ai/profile-completeness";
+import { cn } from "@/lib/utils";
 
 export function ProfileClient({ username }: { username: string }) {
   const [dev, setDev] = useState<Developer | null>(null);
   const [repos, setRepos] = useState<PublicRepo[]>([]);
   const [contributions, setContributions] = useState<ContributionDay[]>([]);
   const [contributionStats, setContributionStats] = useState<ContributionStats | null>(null);
+  const [developers, setDevelopers] = useState<Developer[]>([]);
+  const [compareWith, setCompareWith] = useState("");
   const [rank, setRank] = useState<number | undefined>();
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -33,12 +38,15 @@ export function ProfileClient({ username }: { username: string }) {
       api.public.developers.contributions(username),
       api.public.developers.contributionStats(username).catch(() => null),
       api.public.leaderboard("activity_score", 1, 100),
+      api.public.developers.list(1, 100),
     ])
-      .then(([d, r, c, stats, board]) => {
+      .then(([d, r, c, stats, board, devs]) => {
         setDev(d);
         setRepos(r ?? []);
         setContributions(c ?? []);
         setContributionStats(stats);
+        setDevelopers((devs ?? []).filter((item) => item.github_username !== username));
+        setCompareWith("");
         const idx = board.findIndex((x) => x.github_username === username);
         setRank(idx >= 0 ? idx + 1 : undefined);
       })
@@ -76,6 +84,54 @@ export function ProfileClient({ username }: { username: string }) {
   return (
     <div className="mx-auto max-w-5xl space-y-10 px-4 py-8 sm:px-6">
       <DevCard dev={dev} rank={rank} />
+
+      <Card className="border-primary/15 bg-gradient-to-br from-primary/5 via-card to-card">
+        <CardHeader>
+          <CardTitle>Compare this developer</CardTitle>
+          <CardDescription>
+            Pick a second developer to open a side-by-side AI comparison.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form
+            className="flex flex-col gap-3 sm:flex-row sm:items-end"
+            onSubmit={(e) => e.preventDefault()}
+          >
+            <label className="flex-1 space-y-2">
+              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Second developer
+              </span>
+              <select
+                value={compareWith}
+                onChange={(e) => setCompareWith(e.target.value)}
+                className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
+                <option value="">Select developer</option>
+                {developers.map((candidate) => (
+                  <option key={candidate.id} value={candidate.github_username}>
+                    {candidate.display_name ?? candidate.github_username} (@{candidate.github_username})
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <Link
+              href={compareWith ? `/compare?left=${username}&right=${compareWith}` : "#"}
+              aria-disabled={!compareWith}
+              className={cn(
+                buttonVariants(),
+                "sm:w-auto",
+                !compareWith && "pointer-events-none opacity-50"
+              )}
+            >
+              Compare now
+            </Link>
+          </form>
+          <p className="mt-3 text-xs text-muted-foreground">
+            The current profile stays fixed on the left so you can compare it with another tracked developer.
+          </p>
+        </CardContent>
+      </Card>
 
       <DeveloperSummaryCard username={username} />
 
