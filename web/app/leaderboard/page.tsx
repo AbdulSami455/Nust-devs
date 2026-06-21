@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { RankDelta, Sparkline } from "@/components/charts/sparkline";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { RankInsightCard } from "@/components/ai/rank-insight";
 
 const SORT_OPTIONS = [
   { value: "activity_score", label: "Activity" },
@@ -176,6 +177,10 @@ export default function LeaderboardPage() {
         <p className="text-sm text-muted-foreground">
           Developers with the biggest score gains in the last {trendPeriod} days (from daily snapshots).
         </p>
+      )}
+
+      {!loading && developers[0] && (
+        <RankInsightCard username={developers[0].github_username} />
       )}
 
       {loading ? (

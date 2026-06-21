@@ -18,6 +18,7 @@ import { ContributionHeatmap } from "@/components/profile/contribution-heatmap";
 import { ContributionStatsPanel } from "@/components/profile/contribution-stats";
 import { DeveloperSummaryCard } from "@/components/ai/developer-summary";
 import { ProjectImpactSummaryCard } from "@/components/ai/project-summary";
+import { RankInsightCard } from "@/components/ai/rank-insight";
 import { ProfileCompletenessCard } from "@/components/ai/profile-completeness";
 import { cn } from "@/lib/utils";
 
@@ -85,6 +86,8 @@ export function ProfileClient({ username }: { username: string }) {
   return (
     <div className="mx-auto max-w-5xl space-y-10 px-4 py-8 sm:px-6">
       <DevCard dev={dev} rank={rank} />
+
+      <RankInsightCard username={username} />
 
       <Card className="border-primary/15 bg-gradient-to-br from-primary/5 via-card to-card">
         <CardHeader>
