@@ -83,6 +83,14 @@ export interface PublicRepo {
   sparkline?: SparkPoint[];
 }
 
+export interface ProjectSummary {
+  repo_id: string;
+  headline: string;
+  summary: string;
+  model_version: string;
+  generated_at: string;
+}
+
 export interface ContributionDay {
   date: string;
   count: number;
@@ -512,6 +520,15 @@ export interface ChatAgentEvent {
 export async function fetchDeveloperSummary(username: string): Promise<DeveloperSummary | null> {
   try {
     return await request<DeveloperSummary>(`/api/v1/developers/${username}/summary`);
+  } catch {
+    return null;
+  }
+}
+
+/** Fetch the cached AI summary for a featured project. Returns null if unavailable. */
+export async function fetchProjectSummary(repoId: string): Promise<ProjectSummary | null> {
+  try {
+    return await request<ProjectSummary>(`/api/v1/repos/${repoId}/summary`);
   } catch {
     return null;
   }

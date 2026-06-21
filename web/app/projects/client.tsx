@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sparkline } from "@/components/charts/sparkline";
+import { ProjectImpactSummaryCard } from "@/components/ai/project-summary";
 import { cn } from "@/lib/utils";
 
 const LANG_COLORS: Record<string, string> = {
@@ -128,27 +129,29 @@ export function ProjectsClient() {
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {fastestGrowing.map((repo) => (
-                <a
-                  key={repo.id}
-                  href={repo.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-3 rounded-xl border bg-background/60 p-3 transition-colors hover:border-primary/40"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-mono text-sm font-medium">{repo.full_name}</p>
-                    <p className="mt-1 text-xs text-emerald-600 dark:text-emerald-400">
-                      +{repo.stars_growth_30d ?? 0} stars
-                      <span className="text-muted-foreground"> · {repo.stars} total</span>
-                    </p>
-                  </div>
-                  <Sparkline
-                    data={repo.sparkline ?? []}
-                    width={80}
-                    height={28}
-                    positive={(repo.stars_growth_30d ?? 0) >= 0}
-                  />
-                </a>
+                <div key={repo.id}>
+                  <a
+                    href={repo.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 rounded-xl border bg-background/60 p-3 transition-colors hover:border-primary/40"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-mono text-sm font-medium">{repo.full_name}</p>
+                      <p className="mt-1 text-xs text-emerald-600 dark:text-emerald-400">
+                        +{repo.stars_growth_30d ?? 0} stars
+                        <span className="text-muted-foreground"> · {repo.stars} total</span>
+                      </p>
+                    </div>
+                    <Sparkline
+                      data={repo.sparkline ?? []}
+                      width={80}
+                      height={28}
+                      positive={(repo.stars_growth_30d ?? 0) >= 0}
+                    />
+                  </a>
+                  <ProjectImpactSummaryCard repo={repo} />
+                </div>
               ))}
             </div>
           )}
