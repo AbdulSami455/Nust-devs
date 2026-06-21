@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Sparkline } from "@/components/charts/sparkline";
 import { ProjectImpactSummaryCard } from "@/components/ai/project-summary";
 import { NormalizedTagsCard } from "@/components/ai/normalized-tags";
+import { ShareTextCard } from "@/components/ai/share-text";
 import { cn } from "@/lib/utils";
 
 const LANG_COLORS: Record<string, string> = {
@@ -153,6 +154,7 @@ export function ProjectsClient() {
                   </a>
                   <ProjectImpactSummaryCard repo={repo} />
                   <NormalizedTagsCard kind="project" repoId={repo.id} />
+                  <ShareTextCard kind="project" repoId={repo.id} href={repo.url} />
                 </div>
               ))}
             </div>
@@ -305,6 +307,7 @@ export function ProjectsClient() {
                   </Link>
                 </p>
               )}
+              <ShareTextCard kind="project" repoId={repo.id} href={repo.url} />
             </div>
           ))}
         </div>
