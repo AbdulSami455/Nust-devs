@@ -307,6 +307,13 @@ export const api = {
       method: "POST",
     }),
 
+  ai: {
+    compareDevelopers: (left: string, right: string) =>
+      request<DeveloperComparison>(
+        `/api/v1/ai/compare?left=${encodeURIComponent(left)}&right=${encodeURIComponent(right)}`
+      ),
+  },
+
   admin: {
     developers: {
       list: () => request<Developer[]>("/api/v1/admin/developers"),
@@ -469,6 +476,21 @@ export interface DeveloperSummary {
   headline: string;
   summary: string;
   strengths: string[];
+  model_version: string;
+  generated_at: string;
+}
+
+export interface DeveloperComparison {
+  left: Developer;
+  right: Developer;
+  left_rank?: number;
+  right_rank?: number;
+  headline: string;
+  summary: string;
+  takeaways: string[];
+  shared_strengths: string[];
+  verdict: string;
+  source: "ai" | "fallback";
   model_version: string;
   generated_at: string;
 }

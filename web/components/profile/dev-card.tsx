@@ -96,6 +96,12 @@ export function DevCard({
             Share on X
           </Button>
           <Link
+            href={`/compare?left=${dev.github_username}`}
+            className={cn(buttonVariants({ variant: "outline" }))}
+          >
+            Compare
+          </Link>
+          <Link
             href={`/developers/${dev.github_username}/wrapped`}
             className={cn(buttonVariants({ variant: "outline" }))}
           >

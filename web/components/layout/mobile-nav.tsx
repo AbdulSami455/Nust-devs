@@ -9,6 +9,7 @@ const links = [
   { href: "/innovation", label: "Graph" },
   { href: "/developers", label: "Devs" },
   { href: "/leaderboard", label: "Ranks" },
+  { href: "/compare", label: "Compare" },
   { href: "/projects", label: "Projects" },
   { href: "/stats", label: "Stats" },
 ];

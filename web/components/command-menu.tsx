@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Command } from "cmdk";
 import {
   Code2,
+  GitCompareArrows,
   Home,
   Search,
   Trophy,
@@ -20,6 +21,7 @@ const pages = [
   { href: "/join", label: "Join", icon: Users },
   { href: "/innovation", label: "Innovation Graph", icon: BarChart3 },
   { href: "/developers", label: "Developers", icon: Users },
+  { href: "/compare", label: "Compare Developers", icon: GitCompareArrows },
   { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
   { href: "/hall-of-fame", label: "Hall of Fame", icon: Trophy },
   { href: "/projects", label: "Projects", icon: FolderGit2 },
