@@ -148,6 +148,40 @@ export interface ShareTextInsight {
   generated_at: string;
 }
 
+export interface PlatformInsights {
+  headline: string;
+  project_insights: string[];
+  community_trends: string[];
+  model_version: string;
+  generated_at: string;
+}
+
+export interface WeeklyCommunityReport {
+  headline: string;
+  summary: string;
+  highlights: string[];
+  model_version: string;
+  generated_at: string;
+}
+
+export interface JoinRequestInsight {
+  request_id: string;
+  headline: string;
+  summary: string;
+  duplicate_warning: string;
+  matched_username?: string;
+  model_version: string;
+  generated_at: string;
+}
+
+export interface SyncSummary {
+  headline: string;
+  summary: string;
+  highlights: string[];
+  model_version: string;
+  generated_at: string;
+}
+
 export interface ContributionDay {
   date: string;
   count: number;
@@ -649,6 +683,42 @@ export async function fetchDeveloperShareText(username: string): Promise<ShareTe
 export async function fetchProjectShareText(repoId: string): Promise<ShareTextInsight | null> {
   try {
     return await request<ShareTextInsight>(`/api/v1/repos/${repoId}/share-text`);
+  } catch {
+    return null;
+  }
+}
+
+/** Fetch AI one-line platform insights for projects and community trends. */
+export async function fetchPlatformInsights(): Promise<PlatformInsights | null> {
+  try {
+    return await request<PlatformInsights>(`/api/v1/stats/platform-insights`);
+  } catch {
+    return null;
+  }
+}
+
+/** Fetch the weekly community report. */
+export async function fetchWeeklyCommunityReport(): Promise<WeeklyCommunityReport | null> {
+  try {
+    return await request<WeeklyCommunityReport>(`/api/v1/stats/weekly-community-report`);
+  } catch {
+    return null;
+  }
+}
+
+/** Fetch an AI summary for a pending join request, including duplicate warning. */
+export async function fetchJoinRequestInsight(id: string): Promise<JoinRequestInsight | null> {
+  try {
+    return await request<JoinRequestInsight>(`/api/v1/admin/profile-requests/${id}/ai-insight`);
+  } catch {
+    return null;
+  }
+}
+
+/** Fetch the AI summary of recent sync changes for admins. */
+export async function fetchAdminSyncSummary(): Promise<SyncSummary | null> {
+  try {
+    return await request<SyncSummary>(`/api/v1/admin/sync-summary`);
   } catch {
     return null;
   }
