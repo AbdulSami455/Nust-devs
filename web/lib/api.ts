@@ -100,6 +100,18 @@ export interface RankInsight {
   generated_at: string;
 }
 
+export interface NormalizedTags {
+  entity_type: string;
+  entity_id: string;
+  headline: string;
+  summary: string;
+  languages: string[];
+  skills: string[];
+  tags: string[];
+  model_version: string;
+  generated_at: string;
+}
+
 export interface ContributionDay {
   date: string;
   count: number;
@@ -547,6 +559,24 @@ export async function fetchProjectSummary(repoId: string): Promise<ProjectSummar
 export async function fetchRankInsight(username: string): Promise<RankInsight | null> {
   try {
     return await request<RankInsight>(`/api/v1/developers/${username}/rank-insight`);
+  } catch {
+    return null;
+  }
+}
+
+/** Fetch normalized language/skill tags for a developer. Returns null if unavailable. */
+export async function fetchDeveloperNormalizedTags(username: string): Promise<NormalizedTags | null> {
+  try {
+    return await request<NormalizedTags>(`/api/v1/developers/${username}/normalized-tags`);
+  } catch {
+    return null;
+  }
+}
+
+/** Fetch normalized language/skill tags for a project. Returns null if unavailable. */
+export async function fetchProjectNormalizedTags(repoId: string): Promise<NormalizedTags | null> {
+  try {
+    return await request<NormalizedTags>(`/api/v1/repos/${repoId}/normalized-tags`);
   } catch {
     return null;
   }

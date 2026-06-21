@@ -87,6 +87,7 @@ type AIHandler struct {
 	summaryS        *ai.SummaryService
 	projectSummaryS *ai.ProjectSummaryService
 	rankInsightS    *ai.RankInsightService
+	tagsS           *ai.NormalizedTagsService
 	compareS        *ai.CompareService
 	statsRepo       *repository.StatsRepo
 	db              *pgxpool.Pool
@@ -103,6 +104,7 @@ func NewAIHandler(
 	summaryS *ai.SummaryService,
 	projectSummaryS *ai.ProjectSummaryService,
 	rankInsightS *ai.RankInsightService,
+	tagsS *ai.NormalizedTagsService,
 	compareS *ai.CompareService,
 	statsRepo *repository.StatsRepo,
 	db *pgxpool.Pool,
@@ -113,6 +115,7 @@ func NewAIHandler(
 		summaryS:        summaryS,
 		projectSummaryS: projectSummaryS,
 		rankInsightS:    rankInsightS,
+		tagsS:           tagsS,
 		compareS:        compareS,
 		statsRepo:       statsRepo,
 		db:              db,
@@ -369,6 +372,40 @@ func (h *AIHandler) GetRankInsight(w http.ResponseWriter, r *http.Request) {
 	cacheKey := fmt.Sprintf("developers:%s:rank-insight", strings.ToLower(username))
 	h.cachedJSON(w, r, cacheKey, 12*time.Hour, func() (any, error) {
 		return h.rankInsightS.Get(r.Context(), username)
+	})
+}
+
+// ── Normalized tags endpoints ─────────────────────────────────────────────────
+
+func (h *AIHandler) GetDeveloperNormalizedTags(w http.ResponseWriter, r *http.Request) {
+	username := strings.TrimSpace(r.PathValue("username"))
+	if !ai.ValidateUsername(username) {
+		writeError(w, http.StatusBadRequest, "invalid username")
+		return
+	}
+	if h.tagsS == nil {
+		writeError(w, http.StatusServiceUnavailable, "normalized tags service unavailable")
+		return
+	}
+	cacheKey := fmt.Sprintf("developers:%s:normalized-tags", strings.ToLower(username))
+	h.cachedJSON(w, r, cacheKey, 24*time.Hour, func() (any, error) {
+		return h.tagsS.GetDeveloper(r.Context(), username)
+	})
+}
+
+func (h *AIHandler) GetProjectNormalizedTags(w http.ResponseWriter, r *http.Request) {
+	repoID := strings.TrimSpace(r.PathValue("id"))
+	if repoID == "" {
+		writeError(w, http.StatusBadRequest, "invalid repository id")
+		return
+	}
+	if h.tagsS == nil {
+		writeError(w, http.StatusServiceUnavailable, "normalized tags service unavailable")
+		return
+	}
+	cacheKey := fmt.Sprintf("projects:%s:normalized-tags", repoID)
+	h.cachedJSON(w, r, cacheKey, 24*time.Hour, func() (any, error) {
+		return h.tagsS.GetProject(r.Context(), repoID)
 	})
 }
 

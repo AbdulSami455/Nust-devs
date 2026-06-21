@@ -133,6 +133,18 @@ type RankInsight struct {
 	GeneratedAt  time.Time `json:"generated_at"`
 }
 
+type NormalizedTags struct {
+	EntityType   string    `json:"entity_type"`
+	EntityID     string    `json:"entity_id"`
+	Headline     string    `json:"headline"`
+	Summary      string    `json:"summary"`
+	Languages    []string  `json:"languages"`
+	Skills       []string  `json:"skills"`
+	Tags         []string  `json:"tags"`
+	ModelVersion string    `json:"model_version"`
+	GeneratedAt  time.Time `json:"generated_at"`
+}
+
 type ActivityEvent struct {
 	Type       string `json:"type"`
 	Username   string `json:"username"`
