@@ -76,8 +76,9 @@ func main() {
 	aiProjectSummary := ai.NewProjectSummaryService(aiChat, pool, cfg.AIModel)
 	aiRankInsight := ai.NewRankInsightService(aiChat, pool, statsRepo, cfg.AIModel)
 	aiTags := ai.NewNormalizedTagsService(aiChat, pool, statsRepo, cfg.AIModel)
+	aiProfileInsights := ai.NewProfileInsightsService(aiChat, pool, statsRepo, cfg.AIModel)
 	aiCompare := ai.NewCompareService(aiChat, statsRepo, cfg.AIModel)
-	aiH := handler.NewAIHandler(aiChat, aiSummary, aiProjectSummary, aiRankInsight, aiTags, aiCompare, statsRepo, pool, redisCach)
+	aiH := handler.NewAIHandler(aiChat, aiSummary, aiProjectSummary, aiRankInsight, aiTags, aiProfileInsights, aiCompare, statsRepo, pool, redisCach)
 
 	mux := http.NewServeMux()
 	public := http.NewServeMux()
@@ -95,6 +96,7 @@ func main() {
 	public.HandleFunc("GET /api/v1/developers/{username}/summary", aiH.GetDeveloperSummary)
 	public.HandleFunc("GET /api/v1/developers/{username}/rank-insight", aiH.GetRankInsight)
 	public.HandleFunc("GET /api/v1/developers/{username}/normalized-tags", aiH.GetDeveloperNormalizedTags)
+	public.HandleFunc("GET /api/v1/developers/{username}/profile-insights", aiH.GetProfileInsights)
 	public.HandleFunc("GET /api/v1/repos/{id}/summary", aiH.GetProjectSummary)
 	public.HandleFunc("GET /api/v1/repos/{id}/normalized-tags", aiH.GetProjectNormalizedTags)
 
