@@ -89,6 +89,9 @@ type AIHandler struct {
 	rankInsightS    *ai.RankInsightService
 	tagsS           *ai.NormalizedTagsService
 	profileS        *ai.ProfileInsightsService
+	scoreS          *ai.ScoreBreakdownService
+	homeS           *ai.HomeBannerService
+	shareS          *ai.ShareTextService
 	compareS        *ai.CompareService
 	statsRepo       *repository.StatsRepo
 	db              *pgxpool.Pool
@@ -107,6 +110,9 @@ func NewAIHandler(
 	rankInsightS *ai.RankInsightService,
 	tagsS *ai.NormalizedTagsService,
 	profileS *ai.ProfileInsightsService,
+	scoreS *ai.ScoreBreakdownService,
+	homeS *ai.HomeBannerService,
+	shareS *ai.ShareTextService,
 	compareS *ai.CompareService,
 	statsRepo *repository.StatsRepo,
 	db *pgxpool.Pool,
@@ -119,6 +125,9 @@ func NewAIHandler(
 		rankInsightS:    rankInsightS,
 		tagsS:           tagsS,
 		profileS:        profileS,
+		scoreS:          scoreS,
+		homeS:           homeS,
+		shareS:          shareS,
 		compareS:        compareS,
 		statsRepo:       statsRepo,
 		db:              db,
@@ -427,6 +436,70 @@ func (h *AIHandler) GetProfileInsights(w http.ResponseWriter, r *http.Request) {
 	cacheKey := fmt.Sprintf("developers:%s:profile-insights", strings.ToLower(username))
 	h.cachedJSON(w, r, cacheKey, 24*time.Hour, func() (any, error) {
 		return h.profileS.Get(r.Context(), username)
+	})
+}
+
+// ── Developer score explanation endpoint: GET /api/v1/developers/{username}/score-breakdown ─
+
+func (h *AIHandler) GetScoreBreakdown(w http.ResponseWriter, r *http.Request) {
+	username := strings.TrimSpace(r.PathValue("username"))
+	if !ai.ValidateUsername(username) {
+		writeError(w, http.StatusBadRequest, "invalid username")
+		return
+	}
+	if h.scoreS == nil {
+		writeError(w, http.StatusServiceUnavailable, "score breakdown service unavailable")
+		return
+	}
+	cacheKey := fmt.Sprintf("developers:%s:score-breakdown", strings.ToLower(username))
+	h.cachedJSON(w, r, cacheKey, 12*time.Hour, func() (any, error) {
+		return h.scoreS.Get(r.Context(), username)
+	})
+}
+
+// ── Home banner endpoint: GET /api/v1/stats/home-banner ──────────────────────
+
+func (h *AIHandler) GetHomeBanner(w http.ResponseWriter, r *http.Request) {
+	if h.homeS == nil {
+		writeError(w, http.StatusServiceUnavailable, "home banner service unavailable")
+		return
+	}
+	h.cachedJSON(w, r, "stats:home-banner", 2*time.Hour, func() (any, error) {
+		return h.homeS.Get(r.Context())
+	})
+}
+
+// ── Share text endpoints ──────────────────────────────────────────────────────
+
+func (h *AIHandler) GetDeveloperShareText(w http.ResponseWriter, r *http.Request) {
+	username := strings.TrimSpace(r.PathValue("username"))
+	if !ai.ValidateUsername(username) {
+		writeError(w, http.StatusBadRequest, "invalid username")
+		return
+	}
+	if h.shareS == nil {
+		writeError(w, http.StatusServiceUnavailable, "share text service unavailable")
+		return
+	}
+	cacheKey := fmt.Sprintf("developers:%s:share-text", strings.ToLower(username))
+	h.cachedJSON(w, r, cacheKey, 24*time.Hour, func() (any, error) {
+		return h.shareS.GetDeveloper(r.Context(), username)
+	})
+}
+
+func (h *AIHandler) GetProjectShareText(w http.ResponseWriter, r *http.Request) {
+	repoID := strings.TrimSpace(r.PathValue("id"))
+	if repoID == "" {
+		writeError(w, http.StatusBadRequest, "invalid repository id")
+		return
+	}
+	if h.shareS == nil {
+		writeError(w, http.StatusServiceUnavailable, "share text service unavailable")
+		return
+	}
+	cacheKey := fmt.Sprintf("projects:%s:share-text", repoID)
+	h.cachedJSON(w, r, cacheKey, 24*time.Hour, func() (any, error) {
+		return h.shareS.GetProject(r.Context(), repoID)
 	})
 }
 
