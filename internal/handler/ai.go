@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/abdulsami/nust-devs/internal/ai"
+	"github.com/abdulsami/nust-devs/internal/cache"
 	"github.com/abdulsami/nust-devs/internal/repository"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -84,26 +85,59 @@ func clientIP(r *http.Request) string {
 type AIHandler struct {
 	chat      *ai.ChatService
 	summaryS  *ai.SummaryService
+	compareS  *ai.CompareService
 	statsRepo *repository.StatsRepo
 	db        *pgxpool.Pool
+	cache     *cache.Cache
 	chatRL    *rateLimiter
 	summaryRL *rateLimiter
+	compareRL *rateLimiter
 }
 
 func NewAIHandler(
 	chat *ai.ChatService,
 	summaryS *ai.SummaryService,
+	compareS *ai.CompareService,
 	statsRepo *repository.StatsRepo,
 	db *pgxpool.Pool,
+	cache *cache.Cache,
 ) *AIHandler {
 	return &AIHandler{
 		chat:      chat,
 		summaryS:  summaryS,
+		compareS:  compareS,
 		statsRepo: statsRepo,
 		db:        db,
+		cache:     cache,
 		chatRL:    newRateLimiter(20, time.Hour),
 		summaryRL: newRateLimiter(10, time.Hour),
+		compareRL: newRateLimiter(10, time.Hour),
 	}
+}
+
+func (h *AIHandler) cachedJSON(w http.ResponseWriter, r *http.Request, key string, ttl time.Duration, fetch func() (any, error)) {
+	if h.cache == nil {
+		val, err := fetch()
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "internal error")
+			return
+		}
+		writeJSON(w, http.StatusOK, val)
+		return
+	}
+
+	var dest any
+	if hit, _ := h.cache.GetJSON(r.Context(), key, &dest); hit {
+		writeJSON(w, http.StatusOK, dest)
+		return
+	}
+	val, err := fetch()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "internal error")
+		return
+	}
+	_ = h.cache.SetJSON(r.Context(), key, val, ttl)
+	writeJSON(w, http.StatusOK, val)
 }
 
 // ── Chat SSE endpoint: POST /api/v1/ai/chat ────────────────────────────────────
@@ -259,4 +293,35 @@ func (h *AIHandler) GetDeveloperSummary(w http.ResponseWriter, r *http.Request) 
 	}
 
 	writeJSON(w, http.StatusOK, summary)
+}
+
+// ── Developer comparison endpoint: GET /api/v1/ai/compare ────────────────────
+
+func (h *AIHandler) GetDeveloperComparison(w http.ResponseWriter, r *http.Request) {
+	left := strings.TrimSpace(r.URL.Query().Get("left"))
+	right := strings.TrimSpace(r.URL.Query().Get("right"))
+
+	if !ai.ValidateUsername(left) || !ai.ValidateUsername(right) {
+		writeError(w, http.StatusBadRequest, "invalid usernames")
+		return
+	}
+	if strings.EqualFold(left, right) {
+		writeError(w, http.StatusBadRequest, "pick two different developers")
+		return
+	}
+
+	if !h.compareRL.allow(clientIP(r)) {
+		writeError(w, http.StatusTooManyRequests, "rate limit exceeded")
+		return
+	}
+
+	if h.compareS == nil {
+		writeError(w, http.StatusServiceUnavailable, "comparison service unavailable")
+		return
+	}
+
+	cacheKey := fmt.Sprintf("developers:compare:%s:%s", strings.ToLower(left), strings.ToLower(right))
+	h.cachedJSON(w, r, cacheKey, 15*time.Minute, func() (any, error) {
+		return h.compareS.Get(r.Context(), left, right)
+	})
 }

@@ -73,7 +73,8 @@ func main() {
 		os.Exit(1)
 	}
 	aiSummary := ai.NewSummaryService(aiChat, pool, cfg.AIModel)
-	aiH := handler.NewAIHandler(aiChat, aiSummary, statsRepo, pool)
+	aiCompare := ai.NewCompareService(aiChat, statsRepo, cfg.AIModel)
+	aiH := handler.NewAIHandler(aiChat, aiSummary, aiCompare, statsRepo, pool, redisCach)
 
 	mux := http.NewServeMux()
 	public := http.NewServeMux()
@@ -87,6 +88,7 @@ func main() {
 
 	// AI routes (public, rate-limited internally)
 	public.HandleFunc("POST /api/v1/ai/chat", aiH.Chat)
+	public.HandleFunc("GET /api/v1/ai/compare", aiH.GetDeveloperComparison)
 	public.HandleFunc("GET /api/v1/developers/{username}/summary", aiH.GetDeveloperSummary)
 
 	// Public API
