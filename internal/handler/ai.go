@@ -86,6 +86,7 @@ type AIHandler struct {
 	chat            *ai.ChatService
 	summaryS        *ai.SummaryService
 	projectSummaryS *ai.ProjectSummaryService
+	rankInsightS    *ai.RankInsightService
 	compareS        *ai.CompareService
 	statsRepo       *repository.StatsRepo
 	db              *pgxpool.Pool
@@ -93,6 +94,7 @@ type AIHandler struct {
 	chatRL          *rateLimiter
 	summaryRL       *rateLimiter
 	projectRL       *rateLimiter
+	insightRL       *rateLimiter
 	compareRL       *rateLimiter
 }
 
@@ -100,6 +102,7 @@ func NewAIHandler(
 	chat *ai.ChatService,
 	summaryS *ai.SummaryService,
 	projectSummaryS *ai.ProjectSummaryService,
+	rankInsightS *ai.RankInsightService,
 	compareS *ai.CompareService,
 	statsRepo *repository.StatsRepo,
 	db *pgxpool.Pool,
@@ -109,6 +112,7 @@ func NewAIHandler(
 		chat:            chat,
 		summaryS:        summaryS,
 		projectSummaryS: projectSummaryS,
+		rankInsightS:    rankInsightS,
 		compareS:        compareS,
 		statsRepo:       statsRepo,
 		db:              db,
@@ -116,6 +120,7 @@ func NewAIHandler(
 		chatRL:          newRateLimiter(20, time.Hour),
 		summaryRL:       newRateLimiter(10, time.Hour),
 		projectRL:       newRateLimiter(12, time.Hour),
+		insightRL:       newRateLimiter(12, time.Hour),
 		compareRL:       newRateLimiter(10, time.Hour),
 	}
 }
@@ -279,7 +284,7 @@ func (h *AIHandler) GetDeveloperSummary(w http.ResponseWriter, r *http.Request) 
 	slog.Info("ai developer summary request", "username", strings.ToLower(username), "ip", clientIP(r))
 
 	// Rate limit
-	if !h.summaryRL.allow(clientIP(r)) {
+	if !h.insightRL.allow(clientIP(r)) {
 		writeError(w, http.StatusTooManyRequests, "rate limit exceeded")
 		return
 	}
@@ -338,6 +343,32 @@ func (h *AIHandler) GetProjectSummary(w http.ResponseWriter, r *http.Request) {
 	cacheKey := fmt.Sprintf("projects:%s:summary", repo.ID)
 	h.cachedJSON(w, r, cacheKey, 24*time.Hour, func() (any, error) {
 		return h.projectSummaryS.Get(ctx, *repo)
+	})
+}
+
+// ── Rank/badge explanation endpoint: GET /api/v1/developers/{username}/rank-insight ─
+
+func (h *AIHandler) GetRankInsight(w http.ResponseWriter, r *http.Request) {
+	username := strings.TrimSpace(r.PathValue("username"))
+	if !ai.ValidateUsername(username) {
+		writeError(w, http.StatusBadRequest, "invalid username")
+		return
+	}
+	slog.Info("ai rank insight request", "username", strings.ToLower(username), "ip", clientIP(r))
+
+	if !h.summaryRL.allow(clientIP(r)) {
+		writeError(w, http.StatusTooManyRequests, "rate limit exceeded")
+		return
+	}
+
+	if h.rankInsightS == nil {
+		writeError(w, http.StatusServiceUnavailable, "rank insight service unavailable")
+		return
+	}
+
+	cacheKey := fmt.Sprintf("developers:%s:rank-insight", strings.ToLower(username))
+	h.cachedJSON(w, r, cacheKey, 12*time.Hour, func() (any, error) {
+		return h.rankInsightS.Get(r.Context(), username)
 	})
 }
 

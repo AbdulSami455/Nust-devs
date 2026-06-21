@@ -110,6 +110,7 @@ cd web && npm install && npm run dev
 | GET | `/api/v1/developers/:username` | Developer profile |
 | GET | `/api/v1/developers/:username/repos` | Developer repositories |
 | GET | `/api/v1/developers/:username/contributions` | Contribution calendar (last 365 days) |
+| GET | `/api/v1/developers/:username/rank-insight` | AI rank and badge explanation |
 | GET | `/api/v1/leaderboard?sort_by=activity_score` | Rankings |
 | GET | `/api/v1/projects/top` | Top repositories by stars |
 | GET | `/api/v1/repos/:id/summary` | AI project impact summary |

@@ -124,6 +124,15 @@ type ProjectSummary struct {
 	GeneratedAt  time.Time `json:"generated_at"`
 }
 
+type RankInsight struct {
+	DeveloperID  string    `json:"developer_id"`
+	Headline     string    `json:"headline"`
+	Summary      string    `json:"summary"`
+	Highlights   []string  `json:"highlights"`
+	ModelVersion string    `json:"model_version"`
+	GeneratedAt  time.Time `json:"generated_at"`
+}
+
 type ActivityEvent struct {
 	Type       string `json:"type"`
 	Username   string `json:"username"`
