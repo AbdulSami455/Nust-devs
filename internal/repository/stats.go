@@ -94,6 +94,15 @@ func scanPublicRepo(row interface {
 const repoSelectCols = `
 	r.id, r.name, r.full_name, r.owner, r.description, r.url, r.language, r.stars, r.forks, r.is_fork, r.pushed_at`
 
+func (r *StatsRepo) GetProjectByID(ctx context.Context, id string) (*models.PublicRepo, error) {
+	var repo models.PublicRepo
+	if err := scanPublicRepo(r.db.QueryRow(ctx, fmt.Sprintf(`
+		SELECT %s FROM repos r
+		WHERE r.id = $1`, repoSelectCols), id), &repo); err != nil {
+		return nil, err
+	}
+	return &repo, nil
+}
 func (r *StatsRepo) GetDeveloperRepos(ctx context.Context, devID string) ([]models.PublicRepo, error) {
 	rows, err := r.db.Query(ctx, fmt.Sprintf(`
 		SELECT %s FROM repos r

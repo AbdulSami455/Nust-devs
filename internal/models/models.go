@@ -116,6 +116,14 @@ type PublicRepo struct {
 	Sparkline      []SparkPoint `json:"sparkline,omitempty"`
 }
 
+type ProjectSummary struct {
+	RepoID       string    `json:"repo_id"`
+	Headline     string    `json:"headline"`
+	Summary      string    `json:"summary"`
+	ModelVersion string    `json:"model_version"`
+	GeneratedAt  time.Time `json:"generated_at"`
+}
+
 type ActivityEvent struct {
 	Type       string `json:"type"`
 	Username   string `json:"username"`

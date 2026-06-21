@@ -83,35 +83,40 @@ func clientIP(r *http.Request) string {
 // ── Handler ────────────────────────────────────────────────────────────────────
 
 type AIHandler struct {
-	chat      *ai.ChatService
-	summaryS  *ai.SummaryService
-	compareS  *ai.CompareService
-	statsRepo *repository.StatsRepo
-	db        *pgxpool.Pool
-	cache     *cache.Cache
-	chatRL    *rateLimiter
-	summaryRL *rateLimiter
-	compareRL *rateLimiter
+	chat            *ai.ChatService
+	summaryS        *ai.SummaryService
+	projectSummaryS *ai.ProjectSummaryService
+	compareS        *ai.CompareService
+	statsRepo       *repository.StatsRepo
+	db              *pgxpool.Pool
+	cache           *cache.Cache
+	chatRL          *rateLimiter
+	summaryRL       *rateLimiter
+	projectRL       *rateLimiter
+	compareRL       *rateLimiter
 }
 
 func NewAIHandler(
 	chat *ai.ChatService,
 	summaryS *ai.SummaryService,
+	projectSummaryS *ai.ProjectSummaryService,
 	compareS *ai.CompareService,
 	statsRepo *repository.StatsRepo,
 	db *pgxpool.Pool,
 	cache *cache.Cache,
 ) *AIHandler {
 	return &AIHandler{
-		chat:      chat,
-		summaryS:  summaryS,
-		compareS:  compareS,
-		statsRepo: statsRepo,
-		db:        db,
-		cache:     cache,
-		chatRL:    newRateLimiter(20, time.Hour),
-		summaryRL: newRateLimiter(10, time.Hour),
-		compareRL: newRateLimiter(10, time.Hour),
+		chat:            chat,
+		summaryS:        summaryS,
+		projectSummaryS: projectSummaryS,
+		compareS:        compareS,
+		statsRepo:       statsRepo,
+		db:              db,
+		cache:           cache,
+		chatRL:          newRateLimiter(20, time.Hour),
+		summaryRL:       newRateLimiter(10, time.Hour),
+		projectRL:       newRateLimiter(12, time.Hour),
+		compareRL:       newRateLimiter(10, time.Hour),
 	}
 }
 
@@ -297,6 +302,43 @@ func (h *AIHandler) GetDeveloperSummary(w http.ResponseWriter, r *http.Request) 
 	}
 
 	writeJSON(w, http.StatusOK, summary)
+}
+
+// ── Project summary endpoint: GET /api/v1/repos/{id}/summary ─────────────────
+
+func (h *AIHandler) GetProjectSummary(w http.ResponseWriter, r *http.Request) {
+	repoID := strings.TrimSpace(r.PathValue("id"))
+	if repoID == "" {
+		writeError(w, http.StatusBadRequest, "invalid repository id")
+		return
+	}
+
+	ip := clientIP(r)
+	slog.Info("ai project summary request", "repo_id", repoID, "ip", ip)
+
+	if !h.projectRL.allow(ip) {
+		writeError(w, http.StatusTooManyRequests, "rate limit exceeded")
+		return
+	}
+
+	if h.projectSummaryS == nil {
+		writeError(w, http.StatusServiceUnavailable, "project summary service unavailable")
+		return
+	}
+
+	repo, err := h.statsRepo.GetProjectByID(r.Context(), repoID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "repository not found")
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 90*time.Second)
+	defer cancel()
+
+	cacheKey := fmt.Sprintf("projects:%s:summary", repo.ID)
+	h.cachedJSON(w, r, cacheKey, 24*time.Hour, func() (any, error) {
+		return h.projectSummaryS.Get(ctx, *repo)
+	})
 }
 
 // ── Developer comparison endpoint: GET /api/v1/ai/compare ────────────────────
