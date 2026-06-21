@@ -91,6 +91,15 @@ export interface ProjectSummary {
   generated_at: string;
 }
 
+export interface RankInsight {
+  developer_id: string;
+  headline: string;
+  summary: string;
+  highlights: string[];
+  model_version: string;
+  generated_at: string;
+}
+
 export interface ContributionDay {
   date: string;
   count: number;
@@ -529,6 +538,15 @@ export async function fetchDeveloperSummary(username: string): Promise<Developer
 export async function fetchProjectSummary(repoId: string): Promise<ProjectSummary | null> {
   try {
     return await request<ProjectSummary>(`/api/v1/repos/${repoId}/summary`);
+  } catch {
+    return null;
+  }
+}
+
+/** Fetch the cached AI rank/badge insight for a developer. Returns null if unavailable. */
+export async function fetchRankInsight(username: string): Promise<RankInsight | null> {
+  try {
+    return await request<RankInsight>(`/api/v1/developers/${username}/rank-insight`);
   } catch {
     return null;
   }
