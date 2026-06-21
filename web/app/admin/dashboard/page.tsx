@@ -13,6 +13,8 @@ import {
   type ObservabilityOverview,
 } from "@/lib/api";
 import { ProfileInsightsCard } from "@/components/ai/profile-insights";
+import { JoinRequestInsightCard } from "@/components/ai/join-request-insight";
+import { SyncSummaryCard } from "@/components/ai/sync-summary";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -55,6 +57,9 @@ export default function DashboardPage() {
   const [insightsOpen, setInsightsOpen] = useState(false);
   const [insightsUsername, setInsightsUsername] = useState("");
   const [insightsDisplayName, setInsightsDisplayName] = useState("");
+  const [requestInsightOpen, setRequestInsightOpen] = useState(false);
+  const [requestInsightId, setRequestInsightId] = useState("");
+  const [requestInsightUser, setRequestInsightUser] = useState("");
 
   const fetchDevelopers = useCallback(async () => {
     try {
@@ -249,6 +254,8 @@ export default function DashboardPage() {
           </Card>
         </div>
 
+        <SyncSummaryCard />
+
         {obsOverview && (
           <section className="space-y-3">
             <h2 className="text-lg font-semibold">Observability</h2>
@@ -396,6 +403,17 @@ export default function DashboardPage() {
                         {new Date(req.created_at).toLocaleDateString()}
                       </TableCell>
                       <TableCell className="space-x-2 text-right">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setRequestInsightId(req.id);
+                            setRequestInsightUser(req.github_username);
+                            setRequestInsightOpen(true);
+                          }}
+                        >
+                          AI review
+                        </Button>
                         <Button size="sm" onClick={() => handleApproveRequest(req.id, req.github_username)}>
                           Approve
                         </Button>
@@ -540,6 +558,17 @@ export default function DashboardPage() {
             {insightsUsername ? (
               <ProfileInsightsCard username={insightsUsername} />
             ) : null}
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={requestInsightOpen} onOpenChange={setRequestInsightOpen}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>
+                AI join-request summary{requestInsightUser ? ` — @${requestInsightUser}` : ""}
+              </DialogTitle>
+            </DialogHeader>
+            {requestInsightId ? <JoinRequestInsightCard requestId={requestInsightId} /> : null}
           </DialogContent>
         </Dialog>
       </main>

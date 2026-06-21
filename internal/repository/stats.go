@@ -340,6 +340,30 @@ func (r *StatsRepo) GetSpotlightDeveloper(ctx context.Context) (*models.Develope
 	return &d, nil
 }
 
+func (r *StatsRepo) GetRecentSyncedDevelopers(ctx context.Context, limit int) ([]models.Developer, error) {
+	if limit < 1 || limit > 100 {
+		limit = 10
+	}
+	rows, err := r.db.Query(ctx, fmt.Sprintf(`
+		SELECT %s FROM developers
+		WHERE last_synced_at IS NOT NULL
+		ORDER BY last_synced_at DESC NULLS LAST, updated_at DESC
+		LIMIT $1`, developerCols), limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var devs []models.Developer
+	for rows.Next() {
+		var d models.Developer
+		if err := scanPublicDeveloper(rows, &d); err != nil {
+			return nil, err
+		}
+		devs = append(devs, d)
+	}
+	return devs, rows.Err()
+}
+
 func (r *StatsRepo) GetRecentActivity(ctx context.Context, limit int) ([]models.ActivityEvent, error) {
 	if limit < 1 || limit > 50 {
 		limit = 20

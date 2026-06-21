@@ -181,6 +181,40 @@ type ShareTextInsight struct {
 	GeneratedAt  time.Time `json:"generated_at"`
 }
 
+type PlatformInsights struct {
+	Headline        string    `json:"headline"`
+	ProjectInsights []string  `json:"project_insights"`
+	CommunityTrends []string  `json:"community_trends"`
+	ModelVersion    string    `json:"model_version"`
+	GeneratedAt     time.Time `json:"generated_at"`
+}
+
+type WeeklyCommunityReport struct {
+	Headline     string    `json:"headline"`
+	Summary      string    `json:"summary"`
+	Highlights   []string  `json:"highlights"`
+	ModelVersion string    `json:"model_version"`
+	GeneratedAt  time.Time `json:"generated_at"`
+}
+
+type JoinRequestInsight struct {
+	RequestID        string    `json:"request_id"`
+	Headline         string    `json:"headline"`
+	Summary          string    `json:"summary"`
+	DuplicateWarning string    `json:"duplicate_warning"`
+	MatchedUsername  *string   `json:"matched_username,omitempty"`
+	ModelVersion     string    `json:"model_version"`
+	GeneratedAt      time.Time `json:"generated_at"`
+}
+
+type SyncSummary struct {
+	Headline     string    `json:"headline"`
+	Summary      string    `json:"summary"`
+	Highlights   []string  `json:"highlights"`
+	ModelVersion string    `json:"model_version"`
+	GeneratedAt  time.Time `json:"generated_at"`
+}
+
 type ActivityEvent struct {
 	Type       string `json:"type"`
 	Username   string `json:"username"`
