@@ -122,6 +122,32 @@ export interface ProfileInsights {
   generated_at: string;
 }
 
+export interface ScoreBreakdownInsight {
+  developer_id: string;
+  headline: string;
+  summary: string;
+  breakdown: string[];
+  model_version: string;
+  generated_at: string;
+}
+
+export interface HomeBannerInsight {
+  headline: string;
+  summary: string;
+  highlights: string[];
+  model_version: string;
+  generated_at: string;
+}
+
+export interface ShareTextInsight {
+  entity_type: string;
+  entity_id: string;
+  headline: string;
+  share_text: string;
+  model_version: string;
+  generated_at: string;
+}
+
 export interface ContributionDay {
   date: string;
   count: number;
@@ -587,6 +613,42 @@ export async function fetchDeveloperNormalizedTags(username: string): Promise<No
 export async function fetchProfileInsights(username: string): Promise<ProfileInsights | null> {
   try {
     return await request<ProfileInsights>(`/api/v1/developers/${username}/profile-insights`);
+  } catch {
+    return null;
+  }
+}
+
+/** Fetch AI score breakdown explanation for a developer. Returns null if unavailable. */
+export async function fetchScoreBreakdown(username: string): Promise<ScoreBreakdownInsight | null> {
+  try {
+    return await request<ScoreBreakdownInsight>(`/api/v1/developers/${username}/score-breakdown`);
+  } catch {
+    return null;
+  }
+}
+
+/** Fetch the AI "what changed today" banner for the homepage. Returns null if unavailable. */
+export async function fetchHomeBanner(): Promise<HomeBannerInsight | null> {
+  try {
+    return await request<HomeBannerInsight>(`/api/v1/stats/home-banner`);
+  } catch {
+    return null;
+  }
+}
+
+/** Fetch AI share text for a developer profile. Returns null if unavailable. */
+export async function fetchDeveloperShareText(username: string): Promise<ShareTextInsight | null> {
+  try {
+    return await request<ShareTextInsight>(`/api/v1/developers/${username}/share-text`);
+  } catch {
+    return null;
+  }
+}
+
+/** Fetch AI share text for a project. Returns null if unavailable. */
+export async function fetchProjectShareText(repoId: string): Promise<ShareTextInsight | null> {
+  try {
+    return await request<ShareTextInsight>(`/api/v1/repos/${repoId}/share-text`);
   } catch {
     return null;
   }

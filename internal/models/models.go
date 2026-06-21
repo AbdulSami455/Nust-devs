@@ -155,6 +155,32 @@ type ProfileInsights struct {
 	GeneratedAt         time.Time `json:"generated_at"`
 }
 
+type ScoreBreakdownInsight struct {
+	DeveloperID  string    `json:"developer_id"`
+	Headline     string    `json:"headline"`
+	Summary      string    `json:"summary"`
+	Breakdown    []string  `json:"breakdown"`
+	ModelVersion string    `json:"model_version"`
+	GeneratedAt  time.Time `json:"generated_at"`
+}
+
+type HomeBannerInsight struct {
+	Headline     string    `json:"headline"`
+	Summary      string    `json:"summary"`
+	Highlights   []string  `json:"highlights"`
+	ModelVersion string    `json:"model_version"`
+	GeneratedAt  time.Time `json:"generated_at"`
+}
+
+type ShareTextInsight struct {
+	EntityType   string    `json:"entity_type"`
+	EntityID     string    `json:"entity_id"`
+	Headline     string    `json:"headline"`
+	ShareText    string    `json:"share_text"`
+	ModelVersion string    `json:"model_version"`
+	GeneratedAt  time.Time `json:"generated_at"`
+}
+
 type ActivityEvent struct {
 	Type       string `json:"type"`
 	Username   string `json:"username"`
