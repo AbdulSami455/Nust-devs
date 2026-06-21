@@ -112,6 +112,7 @@ cd web && npm install && npm run dev
 | GET | `/api/v1/developers/:username/contributions` | Contribution calendar (last 365 days) |
 | GET | `/api/v1/leaderboard?sort_by=activity_score` | Rankings |
 | GET | `/api/v1/projects/top` | Top repositories by stars |
+| GET | `/api/v1/repos/:id/summary` | AI project impact summary |
 | GET | `/api/v1/stats/overview` | Platform totals |
 | GET | `/api/v1/stats/languages` | Language breakdown |
 

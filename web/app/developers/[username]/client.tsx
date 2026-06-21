@@ -17,6 +17,7 @@ import { DevCard } from "@/components/profile/dev-card";
 import { ContributionHeatmap } from "@/components/profile/contribution-heatmap";
 import { ContributionStatsPanel } from "@/components/profile/contribution-stats";
 import { DeveloperSummaryCard } from "@/components/ai/developer-summary";
+import { ProjectImpactSummaryCard } from "@/components/ai/project-summary";
 import { ProfileCompletenessCard } from "@/components/ai/profile-completeness";
 import { cn } from "@/lib/utils";
 
@@ -160,34 +161,36 @@ export function ProfileClient({ username }: { username: string }) {
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
             {topRepos.map((repo) => (
-              <a
-                key={repo.id}
-                href={repo.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bento-card block transition-colors hover:border-primary/40"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <p className="font-mono text-sm font-medium">{repo.name}</p>
-                  {repo.is_fork ? (
-                    <Badge variant="secondary" className="text-[10px]">
-                      Fork
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-[10px]">
-                      OSS
-                    </Badge>
-                  )}
-                </div>
-                <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                  {repo.description || "No description"}
-                </p>
-                <div className="mt-3 flex gap-3 text-xs text-muted-foreground">
-                  <span>{repo.stars} stars</span>
-                  <span>{repo.forks} forks</span>
-                  {repo.language && <Badge variant="outline">{repo.language}</Badge>}
-                </div>
-              </a>
+              <div key={repo.id}>
+                <a
+                  href={repo.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bento-card block transition-colors hover:border-primary/40"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-mono text-sm font-medium">{repo.name}</p>
+                    {repo.is_fork ? (
+                      <Badge variant="secondary" className="text-[10px]">
+                        Fork
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-[10px]">
+                        OSS
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                    {repo.description || "No description"}
+                  </p>
+                  <div className="mt-3 flex gap-3 text-xs text-muted-foreground">
+                    <span>{repo.stars} stars</span>
+                    <span>{repo.forks} forks</span>
+                    {repo.language && <Badge variant="outline">{repo.language}</Badge>}
+                  </div>
+                </a>
+                <ProjectImpactSummaryCard repo={repo} />
+              </div>
             ))}
           </div>
         )}
