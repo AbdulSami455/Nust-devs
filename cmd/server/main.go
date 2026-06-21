@@ -80,8 +80,12 @@ func main() {
 	aiScoreBreakdown := ai.NewScoreBreakdownService(aiChat, pool, statsRepo, cfg.AIModel)
 	aiHomeBanner := ai.NewHomeBannerService(aiChat, statsRepo, cfg.AIModel)
 	aiShareText := ai.NewShareTextService(aiChat, statsRepo, cfg.AIModel)
+	aiPlatformInsights := ai.NewPlatformInsightsService(aiChat, statsRepo, cfg.AIModel)
+	aiWeeklyReport := ai.NewWeeklyCommunityReportService(aiChat, statsRepo, cfg.AIModel)
+	aiAdminInsights := ai.NewAdminInsightsService(aiChat, requestRepo, devRepo, statsRepo, cfg.AIModel)
+	aiSyncSummary := ai.NewSyncSummaryService(aiChat, statsRepo, cfg.AIModel)
 	aiCompare := ai.NewCompareService(aiChat, statsRepo, cfg.AIModel)
-	aiH := handler.NewAIHandler(aiChat, aiSummary, aiProjectSummary, aiRankInsight, aiTags, aiProfileInsights, aiScoreBreakdown, aiHomeBanner, aiShareText, aiCompare, statsRepo, pool, redisCach)
+	aiH := handler.NewAIHandler(aiChat, aiSummary, aiProjectSummary, aiRankInsight, aiTags, aiProfileInsights, aiScoreBreakdown, aiHomeBanner, aiShareText, aiPlatformInsights, aiWeeklyReport, aiAdminInsights, aiSyncSummary, aiCompare, statsRepo, pool, redisCach)
 
 	mux := http.NewServeMux()
 	public := http.NewServeMux()
@@ -106,6 +110,8 @@ func main() {
 	public.HandleFunc("GET /api/v1/repos/{id}/normalized-tags", aiH.GetProjectNormalizedTags)
 	public.HandleFunc("GET /api/v1/repos/{id}/share-text", aiH.GetProjectShareText)
 	public.HandleFunc("GET /api/v1/stats/home-banner", aiH.GetHomeBanner)
+	public.HandleFunc("GET /api/v1/stats/platform-insights", aiH.GetPlatformInsights)
+	public.HandleFunc("GET /api/v1/stats/weekly-community-report", aiH.GetWeeklyCommunityReport)
 
 	// Public API
 	public.HandleFunc("GET /api/v1/developers", pubH.ListDevelopers)
@@ -156,8 +162,10 @@ func main() {
 	protected.HandleFunc("POST /api/v1/admin/sync", syncH.TriggerSync)
 	protected.HandleFunc("GET /api/v1/admin/sync/status", syncH.SyncStatus)
 	protected.HandleFunc("GET /api/v1/admin/profile-requests", reqH.List)
+	protected.HandleFunc("GET /api/v1/admin/profile-requests/{id}/ai-insight", aiH.GetAdminRequestInsight)
 	protected.HandleFunc("POST /api/v1/admin/profile-requests/{id}/approve", reqH.Approve)
 	protected.HandleFunc("POST /api/v1/admin/profile-requests/{id}/reject", reqH.Reject)
+	protected.HandleFunc("GET /api/v1/admin/sync-summary", aiH.GetAdminSyncSummary)
 	protected.HandleFunc("GET /api/v1/admin/observability", obsH.GetOverview)
 	protected.HandleFunc("GET /api/v1/admin/observability/logs", obsH.ListAuditLogs)
 	protected.HandleFunc("GET /api/v1/admin/observability/agent-runs", obsH.ListAgentRuns)

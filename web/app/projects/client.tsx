@@ -11,6 +11,7 @@ import { Sparkline } from "@/components/charts/sparkline";
 import { ProjectImpactSummaryCard } from "@/components/ai/project-summary";
 import { NormalizedTagsCard } from "@/components/ai/normalized-tags";
 import { ShareTextCard } from "@/components/ai/share-text";
+import { PlatformInsightsCard } from "@/components/ai/platform-insights";
 import { cn } from "@/lib/utils";
 
 const LANG_COLORS: Record<string, string> = {
@@ -117,6 +118,8 @@ export function ProjectsClient() {
           onChange={(e) => setQuery(e.target.value)}
         />
       </div>
+
+      <PlatformInsightsCard />
 
       {(loadingFastest || fastestGrowing.length > 0) && (
         <section className="bento-card space-y-4">

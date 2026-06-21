@@ -8,6 +8,8 @@ import {
 import { api, type Overview, type LanguageStat, type Developer } from "@/lib/api";
 import { ChartContainer } from "@/components/charts/chart-container";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PlatformInsightsCard } from "@/components/ai/platform-insights";
+import { WeeklyCommunityReportCard } from "@/components/ai/weekly-community-report";
 
 const COLORS = [
   "var(--chart-1)",
@@ -67,6 +69,11 @@ export function StatsClient() {
         <p className="mt-2 text-sm leading-6 text-muted-foreground">
           Aggregated GitHub activity, language usage, and developer rankings across tracked profiles.
         </p>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <PlatformInsightsCard />
+        <WeeklyCommunityReportCard />
       </div>
 
       {/* Overview cards */}
