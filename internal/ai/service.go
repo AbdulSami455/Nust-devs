@@ -83,6 +83,7 @@ func (s *ChatService) RunStreaming(ctx context.Context, meta RunMetadata, histor
 	if err != nil {
 		slog.Warn("agent run log start failed", "err", err)
 	}
+	slog.Info("ai chat run started", "session_id", sessionID, "ip", meta.IP, "message_len", len(meta.UserMessage))
 	emitSafe(emit, StreamEvent{Type: StreamEventStatus, Message: "Thinking"})
 
 	// Non-streaming LLM mode so tool-call rounds complete correctly with OpenRouter.
@@ -126,6 +127,7 @@ func (s *ChatService) RunStreaming(ctx context.Context, meta RunMetadata, histor
 			return ctx.Err()
 		}
 	}
+	slog.Info("ai chat run finished", "session_id", sessionID, "tool_calls", toolCalls, "response_chars", len(finalText), "status", "completed")
 	s.finishRun(context.Background(), runID, buildRunFinish(nil, finalText, toolCalls, startedAt))
 	return nil
 }
@@ -134,6 +136,7 @@ func (s *ChatService) RunStreaming(ctx context.Context, meta RunMetadata, histor
 func (s *ChatService) RunSync(ctx context.Context, prompt string) (string, error) {
 	sessionID := uuid.NewString()
 	content := genai.NewContentFromText(prompt, genai.RoleUser)
+	slog.Info("ai sync run started", "session_id", sessionID, "prompt_len", len(prompt))
 
 	var finalText string
 	for event, err := range s.runner.Run(ctx, "summary", sessionID, content, agent.RunConfig{
@@ -151,6 +154,7 @@ func (s *ChatService) RunSync(ctx context.Context, prompt string) (string, error
 	if finalText == "" {
 		return "", fmt.Errorf("empty response")
 	}
+	slog.Info("ai sync run finished", "session_id", sessionID, "response_chars", len(finalText))
 	return SanitizeOutput(finalText), nil
 }
 
@@ -217,6 +221,7 @@ func (s *ChatService) inspectEvent(
 				key = name
 			}
 			callStartedAt[key] = time.Now()
+			slog.Info("ai tool call", "run_id", runID, "tool", name, "args", sanitizeArgs(p.FunctionCall.Args))
 			emitSafe(emit, StreamEvent{Type: StreamEventToolCall, ToolName: name, Message: toolStatusText(name)})
 			s.logAgentEvent(ctx, runID, repository.AgentRunEventInput{
 				RunID:     runID,
@@ -241,6 +246,7 @@ func (s *ChatService) inspectEvent(
 				delete(callStartedAt, key)
 			}
 			success := responseSucceeded(p.FunctionResponse.Response)
+			slog.Info("ai tool done", "run_id", runID, "tool", name, "success", success, "latency_ms", latency)
 			emitSafe(emit, StreamEvent{Type: StreamEventToolDone, ToolName: name, Success: success, LatencyMS: latency})
 			s.logAgentEvent(ctx, runID, repository.AgentRunEventInput{
 				RunID:     runID,
@@ -260,6 +266,7 @@ func (s *ChatService) startRun(ctx context.Context, meta RunMetadata) (string, e
 	if s.obs == nil {
 		return "", nil
 	}
+	slog.Info("ai run log start", "session_id", meta.SessionID, "ip", meta.IP, "agent", "chat")
 	return s.obs.StartAgentRun(ctx, repository.AgentRunInput{
 		SessionID:   meta.SessionID,
 		AgentName:   "chat",
@@ -274,6 +281,7 @@ func (s *ChatService) finishRun(ctx context.Context, runID string, in repository
 	if s.obs == nil || runID == "" {
 		return
 	}
+	slog.Info("ai run log finish", "run_id", runID, "status", in.Status, "latency_ms", in.LatencyMS, "tool_calls", in.ToolCalls)
 	if err := s.obs.FinishAgentRun(ctx, runID, in); err != nil {
 		slog.Warn("agent run finish log failed", "err", err)
 	}

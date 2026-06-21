@@ -56,10 +56,12 @@ func (s *SummaryService) Get(ctx context.Context, developerID, username string) 
 	// Check cache in DB
 	cached, err := s.load(ctx, developerID)
 	if err == nil && cached != nil && time.Since(cached.GeneratedAt) < summaryMaxAge {
+		slog.Info("summary cache hit", "username", username, "developer_id", developerID)
 		return cached, nil
 	}
 
 	// Generate fresh
+	slog.Info("summary cache miss", "username", username, "developer_id", developerID)
 	summary, err := s.generate(ctx, developerID, username)
 	if err != nil {
 		slog.Warn("summary generation failed", "username", username, "err", err)
@@ -78,6 +80,7 @@ func (s *SummaryService) Get(ctx context.Context, developerID, username string) 
 }
 
 func (s *SummaryService) generate(ctx context.Context, developerID, username string) (*DeveloperSummary, error) {
+	slog.Info("summary generation started", "username", username, "developer_id", developerID)
 	prompt := fmt.Sprintf(
 		"Generate a summary card for NUST developer with GitHub username: %s. "+
 			"Prefer get_developer_snapshot first, and only fall back to narrower tools if needed.\n\n%s",

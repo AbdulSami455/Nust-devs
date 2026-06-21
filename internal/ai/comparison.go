@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"sort"
 	"strings"
 	"time"
@@ -107,8 +108,10 @@ func NewCompareService(chat *ChatService, stats *repository.StatsRepo, model str
 }
 
 func (s *CompareService) Get(ctx context.Context, leftUsername, rightUsername string) (*DeveloperComparison, error) {
+	slog.Info("comparison requested", "left", leftUsername, "right", rightUsername)
 	left, right, err := s.fetchDevelopers(ctx, leftUsername, rightUsername)
 	if err != nil {
+		slog.Warn("comparison lookup failed", "left", leftUsername, "right", rightUsername, "err", err)
 		return nil, err
 	}
 
@@ -131,7 +134,9 @@ func (s *CompareService) Get(ctx context.Context, leftUsername, rightUsername st
 
 	aiResult, err := s.generate(ctx, snapshot)
 	if err != nil {
+		slog.Warn("comparison ai generation failed", "left", leftUsername, "right", rightUsername, "err", err)
 		fallback := fallbackComparison(leftProfile, rightProfile)
+		slog.Info("comparison fallback used", "left", leftUsername, "right", rightUsername)
 		return &DeveloperComparison{
 			Left:            *left,
 			Right:           *right,
@@ -148,6 +153,7 @@ func (s *CompareService) Get(ctx context.Context, leftUsername, rightUsername st
 		}, nil
 	}
 
+	slog.Info("comparison ai generated", "left", leftUsername, "right", rightUsername)
 	return &DeveloperComparison{
 		Left:            *left,
 		Right:           *right,
@@ -302,6 +308,7 @@ func compareProfileFromData(
 }
 
 func (s *CompareService) generate(ctx context.Context, snapshot comparisonSnapshot) (*comparisonJSON, error) {
+	slog.Info("comparison generation started", "left", snapshot.Left.Username, "right", snapshot.Right.Username)
 	snapshotJSON, err := truncateJSON(snapshot)
 	if err != nil {
 		return nil, err
