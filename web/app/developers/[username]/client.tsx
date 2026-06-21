@@ -20,6 +20,7 @@ import { DeveloperSummaryCard } from "@/components/ai/developer-summary";
 import { ProjectImpactSummaryCard } from "@/components/ai/project-summary";
 import { RankInsightCard } from "@/components/ai/rank-insight";
 import { NormalizedTagsCard } from "@/components/ai/normalized-tags";
+import { ProfileInsightsCard } from "@/components/ai/profile-insights";
 import { ProfileCompletenessCard } from "@/components/ai/profile-completeness";
 import { cn } from "@/lib/utils";
 
@@ -141,6 +142,8 @@ export function ProfileClient({ username }: { username: string }) {
       </Card>
 
       <DeveloperSummaryCard username={username} />
+
+      <ProfileInsightsCard username={username} />
 
       <ProfileCompletenessCard dev={dev} repos={repos} />
 

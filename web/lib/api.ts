@@ -112,6 +112,16 @@ export interface NormalizedTags {
   generated_at: string;
 }
 
+export interface ProfileInsights {
+  developer_id: string;
+  headline: string;
+  recent_activity_recap: string;
+  top_achievements: string[];
+  completion_tips: string[];
+  model_version: string;
+  generated_at: string;
+}
+
 export interface ContributionDay {
   date: string;
   count: number;
@@ -568,6 +578,15 @@ export async function fetchRankInsight(username: string): Promise<RankInsight | 
 export async function fetchDeveloperNormalizedTags(username: string): Promise<NormalizedTags | null> {
   try {
     return await request<NormalizedTags>(`/api/v1/developers/${username}/normalized-tags`);
+  } catch {
+    return null;
+  }
+}
+
+/** Fetch AI profile insights for a developer. Returns null if unavailable. */
+export async function fetchProfileInsights(username: string): Promise<ProfileInsights | null> {
+  try {
+    return await request<ProfileInsights>(`/api/v1/developers/${username}/profile-insights`);
   } catch {
     return null;
   }
