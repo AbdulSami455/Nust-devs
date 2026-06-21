@@ -6,6 +6,7 @@ import { api, type LeaderboardEntry } from "@/lib/api";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RankDelta, Sparkline } from "@/components/charts/sparkline";
+import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const SORT_OPTIONS = [
@@ -256,27 +257,38 @@ export default function LeaderboardPage() {
                     <tr key={dev.id} className="border-b last:border-0 hover:bg-muted/30">
                       <td className="px-4 py-3 font-mono text-muted-foreground">#{rank}</td>
                       <td className="px-4 py-3">
-                        <Link
-                          href={`/developers/${dev.github_username}`}
-                          className="flex items-center gap-3 hover:underline"
-                        >
-                          <Avatar className="size-8">
-                            {dev.avatar_url && (
-                              <AvatarImage src={dev.avatar_url} alt={dev.github_username} />
+                        <div className="flex items-start gap-3">
+                          <Link
+                            href={`/developers/${dev.github_username}`}
+                            className="flex items-center gap-3 hover:underline"
+                          >
+                            <Avatar className="size-8">
+                              {dev.avatar_url && (
+                                <AvatarImage src={dev.avatar_url} alt={dev.github_username} />
+                              )}
+                              <AvatarFallback>
+                                {dev.github_username[0]?.toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium">
+                                {dev.display_name ?? dev.github_username}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                @{dev.github_username}
+                              </p>
+                            </div>
+                          </Link>
+                          <Link
+                            href={`/compare?left=${dev.github_username}`}
+                            className={cn(
+                              buttonVariants({ variant: "ghost", size: "xs" }),
+                              "mt-0.5 px-0 text-xs text-primary hover:text-primary"
                             )}
-                            <AvatarFallback>
-                              {dev.github_username[0]?.toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium">
-                              {dev.display_name ?? dev.github_username}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              @{dev.github_username}
-                            </p>
-                          </div>
-                        </Link>
+                          >
+                            Compare
+                          </Link>
+                        </div>
                       </td>
                       <td className="hidden px-4 py-3 sm:table-cell">
                         <Sparkline
