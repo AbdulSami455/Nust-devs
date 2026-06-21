@@ -92,6 +92,10 @@ type AIHandler struct {
 	scoreS          *ai.ScoreBreakdownService
 	homeS           *ai.HomeBannerService
 	shareS          *ai.ShareTextService
+	platformS       *ai.PlatformInsightsService
+	weeklyS         *ai.WeeklyCommunityReportService
+	adminS          *ai.AdminInsightsService
+	syncS           *ai.SyncSummaryService
 	compareS        *ai.CompareService
 	statsRepo       *repository.StatsRepo
 	db              *pgxpool.Pool
@@ -113,6 +117,10 @@ func NewAIHandler(
 	scoreS *ai.ScoreBreakdownService,
 	homeS *ai.HomeBannerService,
 	shareS *ai.ShareTextService,
+	platformS *ai.PlatformInsightsService,
+	weeklyS *ai.WeeklyCommunityReportService,
+	adminS *ai.AdminInsightsService,
+	syncS *ai.SyncSummaryService,
 	compareS *ai.CompareService,
 	statsRepo *repository.StatsRepo,
 	db *pgxpool.Pool,
@@ -128,6 +136,10 @@ func NewAIHandler(
 		scoreS:          scoreS,
 		homeS:           homeS,
 		shareS:          shareS,
+		platformS:       platformS,
+		weeklyS:         weeklyS,
+		adminS:          adminS,
+		syncS:           syncS,
 		compareS:        compareS,
 		statsRepo:       statsRepo,
 		db:              db,
@@ -466,6 +478,52 @@ func (h *AIHandler) GetHomeBanner(w http.ResponseWriter, r *http.Request) {
 	}
 	h.cachedJSON(w, r, "stats:home-banner", 2*time.Hour, func() (any, error) {
 		return h.homeS.Get(r.Context())
+	})
+}
+
+func (h *AIHandler) GetPlatformInsights(w http.ResponseWriter, r *http.Request) {
+	if h.platformS == nil {
+		writeError(w, http.StatusServiceUnavailable, "platform insights service unavailable")
+		return
+	}
+	h.cachedJSON(w, r, "stats:platform-insights", 6*time.Hour, func() (any, error) {
+		return h.platformS.Get(r.Context())
+	})
+}
+
+func (h *AIHandler) GetWeeklyCommunityReport(w http.ResponseWriter, r *http.Request) {
+	if h.weeklyS == nil {
+		writeError(w, http.StatusServiceUnavailable, "weekly report service unavailable")
+		return
+	}
+	h.cachedJSON(w, r, "stats:weekly-community-report", 24*time.Hour, func() (any, error) {
+		return h.weeklyS.Get(r.Context())
+	})
+}
+
+func (h *AIHandler) GetAdminRequestInsight(w http.ResponseWriter, r *http.Request) {
+	requestID := strings.TrimSpace(r.PathValue("id"))
+	if requestID == "" {
+		writeError(w, http.StatusBadRequest, "invalid request id")
+		return
+	}
+	if h.adminS == nil {
+		writeError(w, http.StatusServiceUnavailable, "request insights service unavailable")
+		return
+	}
+	cacheKey := fmt.Sprintf("admin:profile-request:%s:insight", requestID)
+	h.cachedJSON(w, r, cacheKey, 12*time.Hour, func() (any, error) {
+		return h.adminS.GetRequest(r.Context(), requestID)
+	})
+}
+
+func (h *AIHandler) GetAdminSyncSummary(w http.ResponseWriter, r *http.Request) {
+	if h.syncS == nil {
+		writeError(w, http.StatusServiceUnavailable, "sync summary service unavailable")
+		return
+	}
+	h.cachedJSON(w, r, "admin:sync-summary", 6*time.Hour, func() (any, error) {
+		return h.syncS.Get(r.Context())
 	})
 }
 
