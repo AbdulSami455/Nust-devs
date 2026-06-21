@@ -74,8 +74,9 @@ func main() {
 	}
 	aiSummary := ai.NewSummaryService(aiChat, pool, cfg.AIModel)
 	aiProjectSummary := ai.NewProjectSummaryService(aiChat, pool, cfg.AIModel)
+	aiRankInsight := ai.NewRankInsightService(aiChat, pool, statsRepo, cfg.AIModel)
 	aiCompare := ai.NewCompareService(aiChat, statsRepo, cfg.AIModel)
-	aiH := handler.NewAIHandler(aiChat, aiSummary, aiProjectSummary, aiCompare, statsRepo, pool, redisCach)
+	aiH := handler.NewAIHandler(aiChat, aiSummary, aiProjectSummary, aiRankInsight, aiCompare, statsRepo, pool, redisCach)
 
 	mux := http.NewServeMux()
 	public := http.NewServeMux()
@@ -91,6 +92,7 @@ func main() {
 	public.HandleFunc("POST /api/v1/ai/chat", aiH.Chat)
 	public.HandleFunc("GET /api/v1/ai/compare", aiH.GetDeveloperComparison)
 	public.HandleFunc("GET /api/v1/developers/{username}/summary", aiH.GetDeveloperSummary)
+	public.HandleFunc("GET /api/v1/developers/{username}/rank-insight", aiH.GetRankInsight)
 	public.HandleFunc("GET /api/v1/repos/{id}/summary", aiH.GetProjectSummary)
 
 	// Public API
