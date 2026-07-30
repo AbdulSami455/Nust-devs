@@ -3,9 +3,12 @@ package config
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -21,6 +24,32 @@ type Config struct {
 	PublicRateWindow   time.Duration
 	OpenRouterKey      string
 	AIModel            string
+}
+
+func LoadDotEnv() {
+	wd, err := os.Getwd()
+	if err != nil {
+		_ = godotenv.Load()
+		return
+	}
+
+	var paths []string
+	for {
+		path := filepath.Join(wd, ".env")
+		if _, err := os.Stat(path); err == nil {
+			paths = append(paths, path)
+		}
+		parent := filepath.Dir(wd)
+		if parent == wd {
+			break
+		}
+		wd = parent
+	}
+	if len(paths) == 0 {
+		_ = godotenv.Load()
+		return
+	}
+	_ = godotenv.Load(paths...)
 }
 
 func Load() *Config {

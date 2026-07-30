@@ -244,11 +244,12 @@ func (h *AIHandler) Chat(w http.ResponseWriter, r *http.Request) {
 	ch := make(chan string, 32)
 	t0 := time.Now()
 	var agentErr error
+	var faithfulnessEval *ai.FaithfulnessEval
 	var writeMu sync.Mutex
 
 	go func() {
 		defer close(ch)
-		agentErr = h.chat.RunStreaming(ctx, ai.RunMetadata{
+		faithfulnessEval, agentErr = h.chat.RunStreaming(ctx, ai.RunMetadata{
 			StartedAt:   t0,
 			UserMessage: cleanMsg,
 			IP:          ip,
@@ -275,15 +276,23 @@ func (h *AIHandler) Chat(w http.ResponseWriter, r *http.Request) {
 
 	// Eval log (best-effort, async)
 	latencyMS := int(time.Since(t0).Milliseconds())
-	success := agentErr == nil
-	if !success {
+	agentSuccess := agentErr == nil
+	evalSuccess := agentSuccess && (faithfulnessEval == nil || faithfulnessEval.Passed)
+	if !agentSuccess {
 		slog.Warn("chat agent error", "err", agentErr, "ip", ip)
 	}
-	slog.Info("ai chat completed", "ip", ip, "success", success, "latency_ms", latencyMS)
+	evalOutput := map[string]any{
+		"response_len":  buf.Len(),
+		"rounds":        "n/a",
+		"agent_success": agentSuccess,
+		"eval_metric":   ai.FaithfulnessMetricName,
+		"faithfulness":  faithfulnessEval,
+	}
+	slog.Info("ai chat completed", "ip", ip, "success", agentSuccess, "eval_success", evalSuccess, "latency_ms", latencyMS)
 	go ai.LogEval(context.Background(), h.db, "chat",
 		ai.HashInput(cleanMsg),
-		map[string]any{"response_len": buf.Len(), "rounds": "n/a"},
-		latencyMS, success,
+		evalOutput,
+		latencyMS, evalSuccess,
 	)
 }
 

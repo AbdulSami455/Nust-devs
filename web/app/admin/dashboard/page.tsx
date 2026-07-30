@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   api,
+  type AIEvalLog,
   type AgentRun,
   type AgentRunEvent,
   type AuditLog,
@@ -40,6 +41,10 @@ interface SyncStatus {
   github_rate_limit: { remaining: number; reset_at: string };
 }
 
+function faithfulness(log: AIEvalLog) {
+  return log.output.faithfulness ?? null;
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const [developers, setDevelopers] = useState<Developer[]>([]);
@@ -54,6 +59,7 @@ export default function DashboardPage() {
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [agentRuns, setAgentRuns] = useState<AgentRun[]>([]);
   const [agentEvents, setAgentEvents] = useState<AgentRunEvent[]>([]);
+  const [evalLogs, setEvalLogs] = useState<AIEvalLog[]>([]);
   const [insightsOpen, setInsightsOpen] = useState(false);
   const [insightsUsername, setInsightsUsername] = useState("");
   const [insightsDisplayName, setInsightsDisplayName] = useState("");
@@ -115,6 +121,7 @@ export default function DashboardPage() {
         setAuditLogs(data.recent_logs);
         setAgentRuns(data.recent_runs);
         setAgentEvents(data.recent_events);
+        setEvalLogs(data.recent_evals);
       })
       .catch(() => {});
 
@@ -259,7 +266,7 @@ export default function DashboardPage() {
         {obsOverview && (
           <section className="space-y-3">
             <h2 className="text-lg font-semibold">Observability</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">Audit Logs</CardTitle>
@@ -283,6 +290,12 @@ export default function DashboardPage() {
                   <CardTitle className="text-sm font-medium text-muted-foreground">Avg Agent Latency</CardTitle>
                 </CardHeader>
                 <CardContent><p className="text-3xl font-bold">{obsOverview.avg_agent_latency_ms}ms</p></CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Faithfulness</CardTitle>
+                </CardHeader>
+                <CardContent><p className="text-3xl font-bold">{Math.round(obsOverview.faithfulness_pass_rate_24h)}%</p></CardContent>
               </Card>
             </div>
 
@@ -360,6 +373,53 @@ export default function DashboardPage() {
                           </TableCell>
                         </TableRow>
                       ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Faithfulness Evals</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-lg border bg-background overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Agent</TableHead>
+                        <TableHead>Passed</TableHead>
+                        <TableHead>Score</TableHead>
+                        <TableHead>Claims</TableHead>
+                        <TableHead>Unsupported</TableHead>
+                        <TableHead>Latency</TableHead>
+                        <TableHead>Time</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {evalLogs.slice(0, 10).map((log) => {
+                        const evalResult = faithfulness(log);
+                        return (
+                          <TableRow key={log.id}>
+                            <TableCell className="font-mono text-sm">{log.agent_name}</TableCell>
+                            <TableCell>
+                              <Badge variant={log.success ? "default" : "destructive"}>
+                                {log.success ? "yes" : "no"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {evalResult ? `${Math.round(evalResult.score * 100)}%` : "—"}
+                            </TableCell>
+                            <TableCell>{evalResult?.claims_checked ?? "—"}</TableCell>
+                            <TableCell>{evalResult?.claims_unsupported ?? "—"}</TableCell>
+                            <TableCell>{log.latency_ms}ms</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {new Date(log.created_at).toLocaleString()}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>

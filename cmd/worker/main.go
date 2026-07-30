@@ -13,11 +13,10 @@ import (
 	"github.com/abdulsami/nust-devs/internal/service"
 	"github.com/abdulsami/nust-devs/internal/worker"
 	"github.com/hibiken/asynq"
-	"github.com/joho/godotenv"
 )
 
 func main() {
-	_ = godotenv.Load()
+	config.LoadDotEnv()
 	cfg := config.Load()
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))

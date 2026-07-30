@@ -66,7 +66,7 @@ func NewChatService(ctx context.Context, cfg *config.Config, stats *repository.S
 }
 
 // RunStreaming executes the agent and streams the final answer tokens to ch.
-func (s *ChatService) RunStreaming(ctx context.Context, meta RunMetadata, history []HistoryMessage, ch chan<- string, emit func(StreamEvent)) error {
+func (s *ChatService) RunStreaming(ctx context.Context, meta RunMetadata, history []HistoryMessage, ch chan<- string, emit func(StreamEvent)) (*FaithfulnessEval, error) {
 	sessionID := uuid.NewString()
 	startedAt := meta.StartedAt
 	if startedAt.IsZero() {
@@ -89,6 +89,7 @@ func (s *ChatService) RunStreaming(ctx context.Context, meta RunMetadata, histor
 	// Non-streaming LLM mode so tool-call rounds complete correctly with OpenRouter.
 	var finalText string
 	toolCalls := 0
+	toolSources := make([]FaithfulnessToolSource, 0)
 	callStartedAt := map[string]time.Time{}
 	for event, err := range s.runner.Run(ctx, "chat", sessionID, content, agent.RunConfig{
 		StreamingMode: agent.StreamingModeNone,
@@ -96,14 +97,14 @@ func (s *ChatService) RunStreaming(ctx context.Context, meta RunMetadata, histor
 		if err != nil {
 			slog.Warn("adk runner error", "err", err)
 			s.finishRun(context.Background(), runID, buildRunFinish(err, finalText, toolCalls, startedAt))
-			return fmt.Errorf("agent error: %w", err)
+			return nil, fmt.Errorf("agent error: %w", err)
 		}
 		if event == nil {
 			continue
 		}
-		if err := s.inspectEvent(context.Background(), runID, event, emit, callStartedAt, &toolCalls); err != nil {
+		if err := s.inspectEvent(context.Background(), runID, event, emit, callStartedAt, &toolCalls, &toolSources); err != nil {
 			s.finishRun(context.Background(), runID, buildRunFinish(err, finalText, toolCalls, startedAt))
-			return err
+			return nil, err
 		}
 		if eventHasToolParts(event) {
 			continue
@@ -124,25 +125,38 @@ func (s *ChatService) RunStreaming(ctx context.Context, meta RunMetadata, histor
 		case ch <- word:
 		case <-ctx.Done():
 			s.finishRun(context.Background(), runID, buildRunFinish(ctx.Err(), finalText, toolCalls, startedAt))
-			return ctx.Err()
+			return nil, ctx.Err()
 		}
 	}
+	eval := EvaluateFaithfulness(finalText, toolSources)
+	slog.Info("ai chat faithfulness evaluated",
+		"session_id", sessionID,
+		"passed", eval.Passed,
+		"score", eval.Score,
+		"claims_checked", eval.ClaimsChecked,
+		"claims_unsupported", eval.ClaimsUnsupported,
+	)
 	slog.Info("ai chat run finished", "session_id", sessionID, "tool_calls", toolCalls, "response_chars", len(finalText), "status", "completed")
 	s.finishRun(context.Background(), runID, buildRunFinish(nil, finalText, toolCalls, startedAt))
-	return nil
+	return eval, nil
 }
 
 // RunSync runs the agent to completion and returns the final text response.
 func (s *ChatService) RunSync(ctx context.Context, prompt string) (string, error) {
 	sessionID := uuid.NewString()
+	startedAt := time.Now()
 	content := genai.NewContentFromText(prompt, genai.RoleUser)
 	slog.Info("ai sync run started", "session_id", sessionID, "prompt_len", len(prompt))
 
 	var finalText string
+	toolSources := make([]FaithfulnessToolSource, 0)
 	for event, err := range s.runner.Run(ctx, "summary", sessionID, content, agent.RunConfig{
 		StreamingMode: agent.StreamingModeNone,
 	}) {
 		if err != nil {
+			return "", err
+		}
+		if err := collectSyncToolSources(event, &toolSources); err != nil {
 			return "", err
 		}
 		if event != nil && event.IsFinalResponse() && !eventHasToolParts(event) {
@@ -154,8 +168,62 @@ func (s *ChatService) RunSync(ctx context.Context, prompt string) (string, error
 	if finalText == "" {
 		return "", fmt.Errorf("empty response")
 	}
+	finalText = SanitizeOutput(finalText)
+	eval := EvaluateFaithfulness(finalText, toolSources)
+	latencyMS := int(time.Since(startedAt).Milliseconds())
+	slog.Info("ai sync faithfulness evaluated",
+		"session_id", sessionID,
+		"passed", eval.Passed,
+		"score", eval.Score,
+		"claims_checked", eval.ClaimsChecked,
+		"claims_unsupported", eval.ClaimsUnsupported,
+	)
+	s.logEval(context.Background(), repository.AIEvalLogInput{
+		AgentName: "sync",
+		InputHash: HashInput(prompt),
+		Output: map[string]any{
+			"response_len":  len(finalText),
+			"eval_metric":   FaithfulnessMetricName,
+			"faithfulness":  eval,
+			"agent_success": true,
+		},
+		LatencyMS: latencyMS,
+		Success:   eval.Passed,
+	})
 	slog.Info("ai sync run finished", "session_id", sessionID, "response_chars", len(finalText))
-	return SanitizeOutput(finalText), nil
+	return finalText, nil
+}
+
+func collectSyncToolSources(event *session.Event, toolSources *[]FaithfulnessToolSource) error {
+	if event == nil || event.Content == nil {
+		return nil
+	}
+	for _, p := range event.Content.Parts {
+		if p == nil {
+			continue
+		}
+		if p.ExecutableCode != nil || p.CodeExecutionResult != nil || p.ToolCall != nil || p.ToolResponse != nil {
+			return fmt.Errorf("unsupported agent capability requested")
+		}
+		if p.FunctionCall != nil {
+			name := strings.TrimSpace(p.FunctionCall.Name)
+			if _, ok := allowedToolNames[name]; !ok {
+				return fmt.Errorf("unexpected tool requested")
+			}
+			continue
+		}
+		if p.FunctionResponse != nil {
+			name := strings.TrimSpace(p.FunctionResponse.Name)
+			success := responseSucceeded(p.FunctionResponse.Response)
+			if success {
+				*toolSources = append(*toolSources, FaithfulnessToolSource{
+					ToolName: name,
+					Response: sanitizeArgs(p.FunctionResponse.Response),
+				})
+			}
+		}
+	}
+	return nil
 }
 
 func eventText(e *session.Event) string {
@@ -196,6 +264,7 @@ func (s *ChatService) inspectEvent(
 	emit func(StreamEvent),
 	callStartedAt map[string]time.Time,
 	toolCalls *int,
+	toolSources *[]FaithfulnessToolSource,
 ) error {
 	if event == nil || event.Content == nil {
 		return nil
@@ -246,13 +315,20 @@ func (s *ChatService) inspectEvent(
 				delete(callStartedAt, key)
 			}
 			success := responseSucceeded(p.FunctionResponse.Response)
+			response := sanitizeArgs(p.FunctionResponse.Response)
+			if success {
+				*toolSources = append(*toolSources, FaithfulnessToolSource{
+					ToolName: name,
+					Response: response,
+				})
+			}
 			slog.Info("ai tool done", "run_id", runID, "tool", name, "success", success, "latency_ms", latency)
 			emitSafe(emit, StreamEvent{Type: StreamEventToolDone, ToolName: name, Success: success, LatencyMS: latency})
 			s.logAgentEvent(ctx, runID, repository.AgentRunEventInput{
 				RunID:     runID,
 				EventType: "tool_done",
 				ToolName:  name,
-				Payload:   map[string]any{"response": sanitizeArgs(p.FunctionResponse.Response)},
+				Payload:   map[string]any{"response": response},
 				LatencyMS: latency,
 				Success:   success,
 			})
@@ -309,6 +385,15 @@ func (s *ChatService) logAgentEvent(ctx context.Context, runID string, in reposi
 	}
 	if err := s.obs.InsertAgentRunEvent(ctx, in); err != nil {
 		slog.Warn("agent event log failed", "err", err)
+	}
+}
+
+func (s *ChatService) logEval(ctx context.Context, in repository.AIEvalLogInput) {
+	if s.obs == nil {
+		return
+	}
+	if err := s.obs.InsertAIEvalLog(ctx, in); err != nil {
+		slog.Warn("eval log write failed", "err", err)
 	}
 }
 
