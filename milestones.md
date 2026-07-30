@@ -59,6 +59,65 @@ Backlog for self-registration, OAuth login, richer stats, exports, comparison to
 
 ---
 
+## AI Roadmap
+
+These are intentionally lightweight AI features that are useful, low-risk, and easy to ship.
+Prioritization should favor profile, leaderboard, compare, and admin workflows first.
+
+### AI Enhancements to Existing Features
+
+| # | Enhancement | Existing Surface |
+|---|-------------|------------------|
+| 1 | AI-generated developer summary card from GitHub bio, repos, and stats | Developer Profile |
+| 2 | AI-written key strengths on profile pages | Developer Profile |
+| 3 | AI-written project summary for each repo card | Projects |
+| 4 | AI-generated "why this rank" explanation for leaderboard entries | Leaderboard |
+| 5 | AI comparison summary for two developers | Developer Profile, Leaderboard |
+| 6 | AI-generated home dashboard digest with the latest sync changes | Home |
+| 7 | AI narration for charts like spikes, growth, and streaks | Stats, Innovation |
+| 8 | AI-written search suggestions when a query returns no results | Developers, Projects |
+| 9 | AI-generated SEO title and description for profile pages | Public Pages |
+| 10 | ✅ AI-written one-line insights for top projects and community trends | Projects, Home, Stats |
+| 11 | ✅ AI join-request summary for admins | Join, Admin |
+| 12 | ✅ AI duplicate warning when a request matches an existing profile closely | Join, Admin |
+| 13 | ✅ AI summary of recent sync changes for admins | Admin |
+| 14 | ✅ AI-generated weekly community report | Home, Stats |
+| 15 | ✅ AI suggested tags for projects and profiles | Projects, Developers |
+| 16 | ✅ AI quick explanation of score breakdowns on profile pages | Developer Profile |
+| 17 | ✅ AI-generated homepage "what changed today" banner | Home |
+| 18 | ✅ AI-written share text for profile and project links | Public Pages |
+| 19 | ✅ AI-generated "top achievements" bullets from a developer's activity | Developer Profile |
+| 20 | ✅ AI-written recent activity recap for profile pages | Developer Profile |
+| 21 | ✅ AI-suggested completion tips for incomplete profiles | Developer Profile, Admin |
+| 22 | ✅ AI normalizes skill and language names into consistent tags | Developers, Projects |
+| 23 | ✅ AI-generated explanation of new badges or rank changes | Leaderboard, Profile |
+| 24 | ✅ AI one-paragraph project impact summary for featured repos | Projects |
+
+### New AI-Heavy Features
+
+| # | Feature | Scope |
+|---|---------|-------|
+| 1 | Ask the platform simple questions in chat, like "Who are the top Python developers?" | New |
+| 2 | Auto-fill developer summaries from the latest sync data | New |
+| 3 | Generate weekly digest emails or in-app summaries | New |
+| 4 | Simple AI search assistant that turns natural language into filters | Developers, Projects |
+| 5 | Admin helper that summarizes pending join requests | Admin |
+| 6 | Admin helper that flags possible duplicate profiles | Admin |
+| 7 | Simple "recommend similar developers" suggestions | Developer Profile |
+| 8 | Simple "recommend similar projects" suggestions | Projects |
+| 9 | AI form autofill hints for join requests and admin notes | Join, Admin |
+| 10 | AI-generated "next best action" suggestion for admins reviewing requests | Admin |
+| 11 | AI compact digest for leaderboard changes each week | Leaderboard |
+| 12 | AI summary of a developer's top repos and languages | Developer Profile |
+| 13 | AI compare wizard that explains one developer's strengths vs another | Compare, Developer Profile |
+| 14 | AI profile completeness coach that tells users what to add next | Developer Profile |
+| 15 | AI natural-language filter assistant for finding developers and projects | Developers, Projects |
+| 16 | AI collaboration matcher that suggests developers with similar interests | Developer Profile, Projects |
+| 17 | AI-generated FAQ answers for common profile and join questions | Join, Profile |
+| 18 | AI-powered notification explainer that translates alerts into plain language | Home, Admin |
+
+---
+
 ## v1 Scope
 
 The v1 launch path is:
@@ -66,4 +125,3 @@ The v1 launch path is:
 M0 Foundation -> M1 Registry -> M2 GitHub Client -> M3 Sync Worker -> M4 Stats API -> M5 Dashboard -> M5b Revamp -> M7 Production
 
 M6 email verification and full M8 self-registration remain out of the v1 critical path.
-

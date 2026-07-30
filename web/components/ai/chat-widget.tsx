@@ -66,7 +66,6 @@ interface ParsedBlock {
 interface TableData { headers: string[]; rows: string[][] }
 interface ProjectCard { rank?: number; name: string; owner?: string; language?: string; stars: number; forks?: number; description?: string; url?: string }
 interface DevCard { rank?: number; username: string; language?: string; score?: string; streak?: number; stars?: number; prs?: number; reviews?: number; powerTitle?: string }
-interface StatItem { label: string; value: string; sub?: string }
 
 function parseMarkdownTable(block: string): TableData | null {
   const lines = block.trim().split("\n").filter((l) => l.includes("|"));

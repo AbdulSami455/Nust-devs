@@ -18,6 +18,8 @@ type ShareTextCardProps =
 export function ShareTextCard(props: ShareTextCardProps) {
   const [insight, setInsight] = useState<ShareTextInsight | null>(null);
   const [loading, setLoading] = useState(true);
+  const username = props.kind === "developer" ? props.username : undefined;
+  const repoId = props.kind === "project" ? props.repoId : undefined;
   const entityKey = props.kind === "developer" ? props.username : props.repoId;
 
   useEffect(() => {
@@ -26,8 +28,8 @@ export function ShareTextCard(props: ShareTextCardProps) {
     setInsight(null);
     const loader =
       props.kind === "developer"
-        ? fetchDeveloperShareText(props.username)
-        : fetchProjectShareText(props.repoId);
+        ? fetchDeveloperShareText(username as string)
+        : fetchProjectShareText(repoId as string);
 
     loader
       .then((data) => {
@@ -40,7 +42,7 @@ export function ShareTextCard(props: ShareTextCardProps) {
     return () => {
       cancelled = true;
     };
-  }, [props.kind, props.username, props.repoId, entityKey]);
+  }, [props.kind, username, repoId, entityKey]);
 
   const copy = async () => {
     if (!insight) return;
