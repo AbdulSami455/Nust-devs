@@ -391,13 +391,24 @@ type AgentRunEvent struct {
 	CreatedAt time.Time      `json:"created_at"`
 }
 
+type AIEvalLog struct {
+	ID        string         `json:"id"`
+	AgentName string         `json:"agent_name"`
+	InputHash string         `json:"input_hash"`
+	Output    map[string]any `json:"output"`
+	LatencyMS int            `json:"latency_ms"`
+	Success   bool           `json:"success"`
+	CreatedAt time.Time      `json:"created_at"`
+}
+
 type ObservabilityOverview struct {
-	TotalAuditLogs      int        `json:"total_audit_logs"`
-	AgentRuns24h        int        `json:"agent_runs_24h"`
-	AgentSuccessRate24h float64    `json:"agent_success_rate_24h"`
-	AvgAgentLatencyMS   int        `json:"avg_agent_latency_ms"`
-	ActiveAgentRuns     int        `json:"active_agent_runs"`
-	LastAgentRunAt      *time.Time `json:"last_agent_run_at,omitempty"`
+	TotalAuditLogs          int        `json:"total_audit_logs"`
+	AgentRuns24h            int        `json:"agent_runs_24h"`
+	AgentSuccessRate24h     float64    `json:"agent_success_rate_24h"`
+	FaithfulnessPassRate24h float64    `json:"faithfulness_pass_rate_24h"`
+	AvgAgentLatencyMS       int        `json:"avg_agent_latency_ms"`
+	ActiveAgentRuns         int        `json:"active_agent_runs"`
+	LastAgentRunAt          *time.Time `json:"last_agent_run_at,omitempty"`
 }
 
 type ObservabilityResponse struct {
@@ -405,4 +416,5 @@ type ObservabilityResponse struct {
 	RecentLogs   []AuditLog            `json:"recent_logs"`
 	RecentRuns   []AgentRun            `json:"recent_runs"`
 	RecentEvents []AgentRunEvent       `json:"recent_events"`
+	RecentEvals  []AIEvalLog           `json:"recent_evals"`
 }

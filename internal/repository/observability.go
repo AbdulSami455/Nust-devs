@@ -58,6 +58,14 @@ type AgentRunEventInput struct {
 	Success   bool
 }
 
+type AIEvalLogInput struct {
+	AgentName string
+	InputHash string
+	Output    map[string]any
+	LatencyMS int
+	Success   bool
+}
+
 func (r *ObservabilityRepo) InsertAuditLog(ctx context.Context, in AuditLogInput) error {
 	metaJSON, _ := json.Marshal(in.Metadata)
 	_, err := r.db.Exec(ctx, `
@@ -106,6 +114,16 @@ func (r *ObservabilityRepo) InsertAgentRunEvent(ctx context.Context, in AgentRun
 		INSERT INTO agent_run_events (run_id, event_type, tool_name, payload, latency_ms, success)
 		VALUES ($1, $2, $3, $4, $5, $6)`,
 		in.RunID, in.EventType, in.ToolName, payloadJSON, in.LatencyMS, in.Success,
+	)
+	return err
+}
+
+func (r *ObservabilityRepo) InsertAIEvalLog(ctx context.Context, in AIEvalLogInput) error {
+	outputJSON, _ := json.Marshal(in.Output)
+	_, err := r.db.Exec(ctx, `
+		INSERT INTO ai_eval_logs (agent_name, input_hash, output, latency_ms, success)
+		VALUES ($1, $2, $3, $4, $5)`,
+		in.AgentName, in.InputHash, outputJSON, in.LatencyMS, in.Success,
 	)
 	return err
 }
@@ -201,6 +219,36 @@ func (r *ObservabilityRepo) ListRecentAgentEvents(ctx context.Context, limit int
 	return out, rows.Err()
 }
 
+func (r *ObservabilityRepo) ListAIEvalLogs(ctx context.Context, limit int) ([]models.AIEvalLog, error) {
+	if limit < 1 || limit > 100 {
+		limit = 25
+	}
+	rows, err := r.db.Query(ctx, `
+		SELECT id, agent_name, input_hash, output, latency_ms, success, created_at
+		FROM ai_eval_logs
+		ORDER BY created_at DESC
+		LIMIT $1`, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []models.AIEvalLog
+	for rows.Next() {
+		var item models.AIEvalLog
+		var raw []byte
+		if err := rows.Scan(
+			&item.ID, &item.AgentName, &item.InputHash, &raw,
+			&item.LatencyMS, &item.Success, &item.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		item.Output = decodeJSONMap(raw)
+		out = append(out, item)
+	}
+	return out, rows.Err()
+}
+
 func (r *ObservabilityRepo) GetObservabilityOverview(ctx context.Context) (*models.ObservabilityOverview, error) {
 	var out models.ObservabilityOverview
 	var lastRunAt *time.Time
@@ -208,13 +256,15 @@ func (r *ObservabilityRepo) GetObservabilityOverview(ctx context.Context) (*mode
 		SELECT
 			(SELECT COUNT(*)::int FROM audit_logs),
 			(SELECT COUNT(*)::int FROM agent_runs WHERE created_at >= NOW() - INTERVAL '24 hours'),
+			(SELECT COALESCE(AVG(CASE WHEN status = 'completed' THEN 100.0 ELSE 0.0 END), 0)
+			   FROM agent_runs WHERE status != 'running' AND created_at >= NOW() - INTERVAL '24 hours'),
 			(SELECT COALESCE(AVG(CASE WHEN success THEN 100.0 ELSE 0.0 END), 0)
 			   FROM ai_eval_logs WHERE created_at >= NOW() - INTERVAL '24 hours'),
 			(SELECT COALESCE(AVG(latency_ms), 0)::int
 			   FROM agent_runs WHERE finished_at IS NOT NULL AND created_at >= NOW() - INTERVAL '24 hours'),
 			(SELECT COUNT(*)::int FROM agent_runs WHERE status = 'running'),
 			(SELECT MAX(created_at) FROM agent_runs)`).
-		Scan(&out.TotalAuditLogs, &out.AgentRuns24h, &out.AgentSuccessRate24h, &out.AvgAgentLatencyMS, &out.ActiveAgentRuns, &lastRunAt)
+		Scan(&out.TotalAuditLogs, &out.AgentRuns24h, &out.AgentSuccessRate24h, &out.FaithfulnessPassRate24h, &out.AvgAgentLatencyMS, &out.ActiveAgentRuns, &lastRunAt)
 	if err != nil {
 		return nil, fmt.Errorf("overview: %w", err)
 	}

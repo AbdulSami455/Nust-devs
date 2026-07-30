@@ -376,10 +376,47 @@ export interface AgentRunEvent {
   created_at: string;
 }
 
+export interface FaithfulnessClaim {
+  raw: string;
+  value: string;
+  context: string;
+}
+
+export interface FaithfulnessEval {
+  metric: string;
+  passed: boolean;
+  score: number;
+  claims_checked: number;
+  claims_supported: number;
+  claims_unsupported: number;
+  unsupported_claims?: FaithfulnessClaim[];
+  tool_response_count: number;
+  reference_fact_count: number;
+  reason: string;
+}
+
+export interface AIEvalLog {
+  id: string;
+  agent_name: string;
+  input_hash: string;
+  output: {
+    response_len?: number;
+    rounds?: string;
+    agent_success?: boolean;
+    eval_metric?: string;
+    faithfulness?: FaithfulnessEval | null;
+    [key: string]: unknown;
+  };
+  latency_ms: number;
+  success: boolean;
+  created_at: string;
+}
+
 export interface ObservabilityOverview {
   total_audit_logs: number;
   agent_runs_24h: number;
   agent_success_rate_24h: number;
+  faithfulness_pass_rate_24h: number;
   avg_agent_latency_ms: number;
   active_agent_runs: number;
   last_agent_run_at?: string;
@@ -390,6 +427,7 @@ export interface ObservabilityResponse {
   recent_logs: AuditLog[];
   recent_runs: AgentRun[];
   recent_events: AgentRunEvent[];
+  recent_evals: AIEvalLog[];
 }
 
 export type ProjectCategory = "all" | "original" | "forks";
@@ -461,6 +499,8 @@ export const api = {
         request<AgentRun[]>(`/api/v1/admin/observability/agent-runs?limit=${limit}`),
       agentEvents: (limit = 40) =>
         request<AgentRunEvent[]>(`/api/v1/admin/observability/agent-events?limit=${limit}`),
+      evals: (limit = 25) =>
+        request<AIEvalLog[]>(`/api/v1/admin/observability/evals?limit=${limit}`),
     },
   },
 

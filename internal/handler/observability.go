@@ -37,11 +37,17 @@ func (h *ObservabilityHandler) GetOverview(w http.ResponseWriter, r *http.Reques
 		writeError(w, http.StatusInternalServerError, "could not load agent events")
 		return
 	}
+	evals, err := h.repo.ListAIEvalLogs(r.Context(), 20)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "could not load eval logs")
+		return
+	}
 	writeJSON(w, http.StatusOK, models.ObservabilityResponse{
 		Overview:     *overview,
 		RecentLogs:   logs,
 		RecentRuns:   runs,
 		RecentEvents: events,
+		RecentEvals:  evals,
 	})
 }
 
@@ -73,6 +79,16 @@ func (h *ObservabilityHandler) ListAgentEvents(w http.ResponseWriter, r *http.Re
 		return
 	}
 	writeJSON(w, http.StatusOK, events)
+}
+
+func (h *ObservabilityHandler) ListAIEvalLogs(w http.ResponseWriter, r *http.Request) {
+	limit := clampLimit(r.URL.Query().Get("limit"), 25, 1, 100)
+	evals, err := h.repo.ListAIEvalLogs(r.Context(), limit)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "could not load eval logs")
+		return
+	}
+	writeJSON(w, http.StatusOK, evals)
 }
 
 func clampLimit(raw string, fallback, min, max int) int {
