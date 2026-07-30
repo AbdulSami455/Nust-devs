@@ -17,12 +17,11 @@ import (
 	"github.com/abdulsami/nust-devs/internal/middleware"
 	"github.com/abdulsami/nust-devs/internal/repository"
 	"github.com/hibiken/asynq"
-	"github.com/joho/godotenv"
 	"golang.org/x/crypto/bcrypt"
 )
 
 func main() {
-	_ = godotenv.Load()
+	config.LoadDotEnv()
 
 	cfg := config.Load()
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
@@ -170,6 +169,7 @@ func main() {
 	protected.HandleFunc("GET /api/v1/admin/observability/logs", obsH.ListAuditLogs)
 	protected.HandleFunc("GET /api/v1/admin/observability/agent-runs", obsH.ListAgentRuns)
 	protected.HandleFunc("GET /api/v1/admin/observability/agent-events", obsH.ListAgentEvents)
+	protected.HandleFunc("GET /api/v1/admin/observability/evals", obsH.ListAIEvalLogs)
 
 	auth := middleware.Auth(cfg.JWTSecret)
 	mux.Handle("/api/v1/admin/developers", auth(protected))
