@@ -86,7 +86,7 @@ func (r *StatsRepo) ListDevOfMonthWinners(ctx context.Context, limit int) ([]mod
 		FROM dev_of_month_winners w
 		JOIN developers d ON d.id = w.developer_id
 		ORDER BY w.year DESC, w.month DESC
-		LIMIT $1`, developerCols), limit)
+		LIMIT $1`, qualifiedDeveloperCols("d")), limit)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +100,7 @@ func (r *StatsRepo) ListDevOfMonthWinners(ctx context.Context, limit int) ([]mod
 			&w.Year, &w.Month, &w.Score, &w.ActivityPoints, &w.RankGain, &w.StarsGained,
 			&d.ID, &d.GithubUsername, &d.DisplayName, &d.AvatarURL, &d.Bio,
 			&d.Location, &d.Company, &d.Website,
-			&d.Followers, &d.Following, &d.PublicRepos, &d.TotalStars, &d.ActivityScore,
+			&d.Followers, &d.Following, &d.PublicRepos, &d.ReadmeRepos, &d.TotalStars, &d.ActivityScore,
 			&d.BuilderScore, &d.ContributorScore, &d.ReviewerScore, &d.CommunityScore,
 			&d.PRContributions, &d.IssueContributions, &d.ReviewContributions,
 			&d.ContributionPeriodStart, &d.ContributionPeriodEnd,
@@ -245,11 +245,11 @@ func (r *StatsRepo) activityPercentile(ctx context.Context, devID string) (int, 
 
 func (r *StatsRepo) AwardDevOfMonth(ctx context.Context, year, month int) error {
 	type candidate struct {
-		devID          string
-		activity       int
-		rankGain       int
-		starsGained    int
-		score          float64
+		devID       string
+		activity    int
+		rankGain    int
+		starsGained int
+		score       float64
 	}
 
 	start := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)

@@ -27,6 +27,17 @@ var developerCols = `
 	current_streak, longest_streak, streak_multiplier, xp, power_level,
 	verification_status, last_synced_at, created_at, updated_at`
 
+func qualifiedDeveloperCols(alias string) string {
+	cols := strings.Split(developerCols, ",")
+	for i, col := range cols {
+		col = strings.TrimSpace(col)
+		if col != "" {
+			cols[i] = alias + "." + col
+		}
+	}
+	return strings.Join(cols, ", ")
+}
+
 func scanPublicDeveloper(row interface {
 	Scan(...any) error
 }, d *models.Developer) error {
@@ -325,7 +336,7 @@ func (r *StatsRepo) GetSpotlightDeveloper(ctx context.Context) (*models.Develope
 		SELECT %s FROM dev_of_month_winners w
 		JOIN developers d ON d.id = w.developer_id
 		ORDER BY w.year DESC, w.month DESC
-		LIMIT 1`, developerCols)), &d)
+		LIMIT 1`, qualifiedDeveloperCols("d"))), &d)
 	if err == nil {
 		return &d, nil
 	}
